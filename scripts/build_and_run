@@ -1,0 +1,39 @@
+#!/bin/bash
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+
+SCRIPTS="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+readonly SCRIPTS
+
+source "${SCRIPTS}/lib_logging.sh"
+
+readonly DEVKIT="${SCRIPTS}/../devkit"
+readonly IMAGES="${SCRIPTS}/../images"
+
+declare -r IMAGE_NAME="$1"
+shift
+
+BUILD_CMD="${DEVKIT}/docker/build.py ${IMAGE_NAME} --print-tag --search-path ${IMAGES}"
+readonly BUILD_CMD
+
+BUILD_OUTPUT="$(${BUILD_CMD})" || { echo "${BUILD_OUTPUT}"; exit 1; }
+readonly BUILD_OUTPUT
+
+IMAGE_URI="$(echo "${BUILD_OUTPUT}" | tail -n 1)"
+readonly IMAGE_URI
+
+"${SCRIPTS}/docker_run" "${IMAGE_URI}" "$@"

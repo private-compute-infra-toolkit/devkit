@@ -1,0 +1,81 @@
+#!/bin/bash
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+
+SCRIPTS="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+readonly SCRIPTS
+
+source "${SCRIPTS}/lib_logging.sh"
+
+if [[ -z ${USER} ]] || [[ -z ${USER_ID} ]]; then
+    echo "Error: USER and USER_ID must be set as environment variables." >&2
+    exit 1
+fi
+
+if [[ -z ${GROUP} ]] || [[ -z ${GROUP_ID} ]]; then
+    echo "Error: GROUP and GROUP_ID must be set as environment variables." >&2
+    exit 1
+fi
+
+if [[ -z ${DOCKER_GROUP} ]] || [[ -z ${DOCKER_GROUP_ID} ]]; then
+    echo "Error: DOCKER_GROUP and DOCKER_GROUP_ID must be set as environment variables." >&2
+    exit 1
+fi
+
+if [[ -z ${NOBODY_GROUP} ]] || [[ -z ${NOBODY_GROUP_ID} ]]; then
+    echo "Error: NOBODY_GROUP and NOBODY_GROUP_ID must be set as environment variables." >&2
+    exit 1
+fi
+
+if [[ -z ${HOME} ]]; then
+    echo "Error: HOME must be set as environment variable." >&2
+    exit 1
+fi
+
+{
+groupadd -g "${GROUP_ID}" "${GROUP}"
+useradd --home-dir "${HOME}" --shell /bin/bash -u "${USER_ID}" -g "${GROUP_ID}" "${USER}"
+passwd -d "${USER}"
+
+groupadd -g "${DOCKER_GROUP_ID}" "${DOCKER_GROUP}"
+usermod -aG "${DOCKER_GROUP}" "${USER}"
+
+if ! getent group "${NOBODY_GROUP}" &>/dev/null; then
+    groupadd -g "${NOBODY_GROUP_ID}" "${NOBODY_GROUP}"
+fi
+
+usermod -aG sudo "${USER}"
+
+chmod a+w /dev/std*
+
+# Docker volume mounts can create directories with root ownership.
+# For example, if we mount `$HOME/foo/bar/baz`, then `$HOME/foo` and
+# `$HOME/foo/bar` might be created and owned by root.
+# The following command finds all directories owned by root inside the user's
+# home directory and changes their ownership to the current user.
+# The search is not fully recursive; the `-prune` option stops the descent
+# into a directory tree as soon as it finds a directory not owned by root.
+# This is an optimization to avoid traversing the entire home directory.
+find "${HOME}" -user root -type d -print0 -o -prune | xargs -0 chown "${USER}:${GROUP}"
+
+} &>"${DEVKIT_LOG_FILE}"
+
+# Change log file ownership to the current user.
+# If this is not done, then outside of the container the file will be owned by root.
+chown "${USER}:${GROUP}" "${DEVKIT_LOG_FILE}"
+
+exec sudo --preserve-env --preserve-env=PATH -u "${USER}" -g "${GROUP}" "$@"

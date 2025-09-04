@@ -1,0 +1,6 @@
+bazel-*
+.gemini
+compile_commands.json
+external
+.cache
+.clwb

@@ -1,0 +1,148 @@
+#!/bin/bash
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+
+SCRIPTS="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+readonly SCRIPTS
+
+source "${SCRIPTS}/lib_logging.sh"
+
+declare -r DEVKIT_HOME="${HOME}/.devkit"
+declare -r BAZELISK_CACHE_HOME="${HOME}/.cache/bazelisk"
+declare -r BAZEL_CACHE_HOME="${HOME}/.cache/bazel"
+declare -r DOCKER_HOME="${HOME}/.docker"
+declare -r GCLOUD_CONFIG_HOME="${HOME}/.config/gcloud"
+declare -r GEMINI_HOME="${HOME}/.gemini"
+declare -r PRE_COMMIT_CACHE_HOME="${HOME}/.cache/pre-commit"
+declare -r PRE_COMMIT_LOCAL_HOME="${HOME}/.local/pre-commit"
+declare -r NVIM_SHARE_LOCAL_HOME="${HOME}/.local/share/nvim"
+declare -r NVIM_CACHE_HOME="${HOME}/.cache/nvim"
+declare -r GO_BUILD_CACHE_HOME="${HOME}/.cache/go-build"
+declare -r PYLINT_CACHE_HOME="${HOME}/.cache/pylint"
+declare -r NPM_HOME="${HOME}/.npm"
+declare -r BUF_CACHE_HOME="${HOME}/.cache/buf"
+declare -r STATE_LOCAL_HOME="${HOME}/.local/state"
+declare -r PIP_TOOLS_CACHE="${HOME}/.cache/pip-tools"
+declare -r PIP_CACHE="${HOME}/.cache/pip"
+declare -r MATPLOTLIB_CONFIG="${HOME}/.config/matplotlib"
+
+mkdir -p "${DEVKIT_HOME}"
+mkdir -p "${BAZELISK_CACHE_HOME}"
+mkdir -p "${BAZEL_CACHE_HOME}"
+mkdir -p "${DOCKER_HOME}"
+mkdir -p "${GCLOUD_CONFIG_HOME}"
+mkdir -p "${GEMINI_HOME}"
+mkdir -p "${PRE_COMMIT_CACHE_HOME}"
+mkdir -p "${PRE_COMMIT_LOCAL_HOME}"
+mkdir -p "${NVIM_SHARE_LOCAL_HOME}"
+mkdir -p "${NVIM_CACHE_HOME}"
+mkdir -p "${GO_BUILD_CACHE_HOME}"
+mkdir -p "${PYLINT_CACHE_HOME}"
+mkdir -p "${NPM_HOME}"
+mkdir -p "${BUF_CACHE_HOME}"
+mkdir -p "${STATE_LOCAL_HOME}"
+mkdir -p "${PIP_TOOLS_CACHE}"
+mkdir -p "${PIP_CACHE}"
+mkdir -p "${MATPLOTLIB_CONFIG}"
+
+declare -r DOCKER_SOCKET="/var/run/docker.sock"
+declare -r GIT_CONFIG="${HOME}/.gitconfig"
+
+touch "${GIT_CONFIG}"
+
+declare -r DOCKER_GROUP="docker"
+declare -i DOCKER_GROUP_ID
+DOCKER_GROUP_ID=$(getent group "${DOCKER_GROUP}" | cut -d: -f3)
+
+declare -r NOBODY_GROUP="nobody"
+declare -i NOBODY_GROUP_ID
+NOBODY_GROUP_ID=$(getent group "${NOBODY_GROUP}" | cut -d: -f3)
+
+declare -a ADDITIONAL_MOUNTS=()
+
+while IFS= read -r path; do
+  ADDITIONAL_MOUNTS+=("--volume=${path}:${path}")
+done < <("${SCRIPTS}/list_external_mounts.py")
+
+declare -a ADDITIONAL_ENV=()
+
+declare -a DOCKER_RUN_ARGS=()
+if [[ -t 0 ]] && [[ -t 1 ]]; then
+  DOCKER_RUN_ARGS+=(
+    "--interactive"
+    "--tty"
+  )
+fi
+
+mapfile -t DOCKER_RUN_ARGS_FROM_JSON < <(python3 - <<'EOF'
+import json
+try:
+    with open("devkit.json") as f:
+        data = json.load(f)
+        args = data["docker"]["run"]
+        if args:
+            print("\n".join(args))
+except Exception:
+    pass
+EOF
+)
+
+DOCKER_RUN_ARGS+=("${DOCKER_RUN_ARGS_FROM_JSON[@]}")
+
+docker run \
+    --rm \
+    --volume="${PWD}:${PWD}" \
+    --workdir="${PWD}" \
+    --env="HOME" \
+    --env="GEMINI_API_KEY" \
+    --env="GH_TOKEN" \
+    --env="USER=$(id -u -n)" \
+    --env="USER_ID=$(id -u)" \
+    --env="GROUP=$(id -g -n)" \
+    --env="GROUP_ID=$(id -g)" \
+    --env="DOCKER_GROUP=${DOCKER_GROUP}" \
+    --env="DOCKER_GROUP_ID=${DOCKER_GROUP_ID}" \
+    --env="NOBODY_GROUP=${NOBODY_GROUP}" \
+    --env="NOBODY_GROUP_ID=${NOBODY_GROUP_ID}" \
+    "${ADDITIONAL_ENV[@]}" \
+    --volume="${DEVKIT_HOME}:${DEVKIT_HOME}" \
+    --volume="${BAZELISK_CACHE_HOME}:${BAZELISK_CACHE_HOME}" \
+    --volume="${BAZEL_CACHE_HOME}:${BAZEL_CACHE_HOME}" \
+    --volume="${DOCKER_SOCKET}:${DOCKER_SOCKET}" \
+    --volume="${DOCKER_HOME}:${DOCKER_HOME}" \
+    --volume="${GCLOUD_CONFIG_HOME}:${GCLOUD_CONFIG_HOME}" \
+    --volume="${GIT_CONFIG}:${GIT_CONFIG}" \
+    --volume="${GEMINI_HOME}:${GEMINI_HOME}" \
+    --volume="${PRE_COMMIT_CACHE_HOME}:${PRE_COMMIT_CACHE_HOME}" \
+    --volume="${PRE_COMMIT_LOCAL_HOME}:${PRE_COMMIT_LOCAL_HOME}" \
+    --volume="${NVIM_SHARE_LOCAL_HOME}:${NVIM_SHARE_LOCAL_HOME}" \
+    --volume="${NVIM_CACHE_HOME}:${NVIM_CACHE_HOME}" \
+    --volume="${GO_BUILD_CACHE_HOME}:${GO_BUILD_CACHE_HOME}" \
+    --volume="${PYLINT_CACHE_HOME}:${PYLINT_CACHE_HOME}" \
+    --volume="${NPM_HOME}:${NPM_HOME}" \
+    --volume="${BUF_CACHE_HOME}:${BUF_CACHE_HOME}" \
+    --volume="${STATE_LOCAL_HOME}:${STATE_LOCAL_HOME}" \
+    --volume="${PIP_TOOLS_CACHE}:${PIP_TOOLS_CACHE}" \
+    --volume="${PIP_CACHE}:${PIP_CACHE}" \
+    --volume="${MATPLOTLIB_CONFIG}:${MATPLOTLIB_CONFIG}" \
+    "${ADDITIONAL_MOUNTS[@]}" \
+    --net=host \
+    --hostname="$(hostname)" \
+    --volume="/tmp:/tmp" \
+    --entrypoint="${SCRIPTS}/entrypoint_docker" \
+    "${DOCKER_RUN_ARGS[@]}" \
+    "$@"

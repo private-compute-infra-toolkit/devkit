@@ -1,0 +1,15 @@
+# Configuration for Conventional Commits based on:
+#  - https://www.conventionalcommits.org/en/about
+#  - https://github.com/jorisroovers/gitlint
+#  - https://jorisroovers.com/gitlint/latest/rules/contrib_rules/#ct1-contrib-title-conventional-commits
+
+[general]
+contrib = contrib-title-conventional-commits
+regex-style-search=true
+
+[ignore-by-title]
+# Match commit titles starting with "Release"
+regex=^Release(.*)
+
+[contrib-title-conventional-commits]
+types=fix,feat,chore,docs,internal,chore,style,refactor,perf,test,ci

@@ -1,0 +1,4 @@
+build --incompatible_strict_action_env
+build --strip=always
+
+build:run_all_tests --cache_test_results=no

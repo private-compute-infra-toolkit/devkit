@@ -1,0 +1,54 @@
+{
+    "tool-env": {
+        "deps": {}
+    },
+    "build-env": {
+        "deps": {
+            "BASE": "tool-env"
+        }
+    },
+    "build-env-alpine": {
+        "deps": {}
+    },
+    "build-env-debian": {
+        "deps": {}
+    },
+    "build-env-rockylinux": {
+        "deps": {}
+    },
+    "dev-env": {
+        "deps": {
+            "BASE": "build-env"
+        }
+    },
+    "ide-env": {
+        "deps": {
+            "BASE": "dev-env"
+        }
+    },
+    "intellij-ide": {
+        "deps": {
+            "BASE": "ide-env"
+        }
+    },
+    "clion-ide": {
+        "deps": {
+            "BASE": "ide-env"
+        }
+    },
+    "pycharm-ide": {
+        "deps": {
+            "BASE": "ide-env"
+        }
+    },
+    "vscode-ide": {
+        "deps": {
+            "BASE": "ide-env"
+        }
+    },
+    "vscode-server": {
+        "deps": {
+            "BASE": "dev-env"
+        }
+    }
+}

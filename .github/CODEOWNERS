@@ -1,0 +1,5 @@
+# See https://help.github.com/articles/about-codeowners/
+# for more info about CODEOWNERS file
+
+# Default ownership
+* @private-compute-infra-toolkit/devkit-team

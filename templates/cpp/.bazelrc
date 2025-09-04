@@ -1,0 +1,6 @@
+try-import %workspace%/devkit/.bazelrc
+try-import %workspace%/google_internal/.bazelrc
+{% if toolchain == "llvm_bootstrapped" -%}
+common --experimental_cc_static_library
+{% endif -%}
+common --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1

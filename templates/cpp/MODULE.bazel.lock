@@ -1,0 +1,5 @@
+{%- if toolchain == "llvm_custom_sysroot" -%}
+{%- include 'MODULE.bazel.lock.llvm_custom_sysroot.include' -%}
+{%- elif toolchain == "llvm_bootstrapped" -%}
+{%- include 'MODULE.bazel.lock.llvm_bootstrapped.include' -%}
+{%- endif -%}

@@ -1,0 +1,96 @@
+#!/bin/bash
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+
+DEVKIT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+readonly DEVKIT
+
+readonly SCRIPTS="${DEVKIT}/../scripts"
+readonly IMAGES="${DEVKIT}/../images"
+
+source "${SCRIPTS}/lib_logging.sh"
+
+function usage() {
+  local -i exitval=${1-1}
+  cat &>/dev/stderr << USAGE
+usage:
+  $0 <options>
+    --server                   run in server mode
+USAGE
+  exit ${exitval}
+}
+
+declare -i SERVER=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --server)
+      SERVER=1
+      shift
+      ;;
+    -h | --help) usage 0 ;;
+    *)
+      printf "unrecognized arg: %s\n" "$1"
+      usage
+      ;;
+  esac
+done
+
+readonly SERVER
+
+BUILD_OUTPUT=$("${DEVKIT}/docker/build.py" vscode-ide --print-tag --search-path "${IMAGES}")
+VSCODE_IDE_IMAGE=$(echo "${BUILD_OUTPUT}" | tail -n 1)
+
+CODE_CONFIG_HOME="${HOME}/.config/Code"
+VSCODE_HOME="${HOME}/.vscode"
+MICROSOFT_CACHE_HOME="${HOME}/.cache/Microsoft"
+GOOGLE_VSCODE_EXTENSION_CACHE_HOME="${HOME}/.cache/google-vscode-extension"
+CLOUD_CODE_CACHE_HOME="${HOME}/.cache/cloud-code"
+
+mkdir -p "${CODE_CONFIG_HOME}"
+mkdir -p "${VSCODE_HOME}"
+mkdir -p "${MICROSOFT_CACHE_HOME}"
+mkdir -p "${GOOGLE_VSCODE_EXTENSION_CACHE_HOME}"
+mkdir -p "${CLOUD_CODE_CACHE_HOME}"
+
+declare -a ARGS=(
+  --volume="${CODE_CONFIG_HOME}:${CODE_CONFIG_HOME}"
+  --volume="${VSCODE_HOME}:${VSCODE_HOME}"
+  --volume="${MICROSOFT_CACHE_HOME}:${MICROSOFT_CACHE_HOME}"
+  --volume="${GOOGLE_VSCODE_EXTENSION_CACHE_HOME}:${GOOGLE_VSCODE_EXTENSION_CACHE_HOME}"
+  --volume="${CLOUD_CODE_CACHE_HOME}:${CLOUD_CODE_CACHE_HOME}"
+)
+
+declare -a COMMAND=(code)
+if [[ ${SERVER} -eq 1 ]]; then
+  VSCODE_SERVER_HOME="${HOME}/.vscode-server"
+  mkdir -p "${VSCODE_SERVER_HOME}"
+  ARGS+=(--volume="${VSCODE_SERVER_HOME}:${VSCODE_SERVER_HOME}")
+  COMMAND+=(serve-web --host=127.0.0.1 --port=8080 --without-connection-token)
+else
+  DISPLAY_SOCKET="/tmp/.X11-unix"
+  SYSTEM_BUS_SOCKET="/run/dbus/system_bus_socket"
+  ARGS+=(
+    --privileged
+    --volume="${DISPLAY_SOCKET}:${DISPLAY_SOCKET}"
+    --volume="${SYSTEM_BUS_SOCKET}:${SYSTEM_BUS_SOCKET}"
+    --env="DISPLAY"
+  )
+  COMMAND+=(--disable-dev-shm-usage --wait "${PWD}")
+fi
+
+"${SCRIPTS}/docker_run" "${ARGS[@]}" "${VSCODE_IDE_IMAGE}" "${COMMAND[@]}"

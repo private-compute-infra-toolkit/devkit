@@ -1,0 +1,84 @@
+#!/bin/bash
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+
+function usage() {
+  declare -r -i exitval=${1-1}
+  cat &>/dev/stderr <<USAGE
+usage: $(basename "${BASH_SOURCE[0]}") [OPTION]...
+
+  This script is designed to verify the integrity of files by checking their
+  SHA-256 checksums. It verifies files against a 'checksums.txt' file in the
+  current directory. Each line in 'checksums.txt' must contain the expected
+  SHA-256 checksum, followed by two spaces, and then the filename.
+
+  Options:
+    -h, --help                Show this help message and exit.
+USAGE
+  exit ${exitval}
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h | --help) usage 0 ;;
+    *) printf "Error: unrecognized arg: %s\n" "$1"; usage 1 ;;
+  esac
+done
+
+DEVKIT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+readonly DEVKIT
+
+readonly SCRIPTS="${DEVKIT}/../scripts"
+
+source "${SCRIPTS}/lib_logging.sh"
+
+# ANSI Color Codes
+declare -r GREEN='\033[0;32m'
+declare -r RED='\033[0;31m'
+declare -r NC='\033[0m' # No Color
+
+declare -i ALL_OK=1
+
+if [[ ! -f "checksums.txt" ]]; then
+  printf "%bError: checksums.txt not found.%b\n" "${RED}" "${NC}" &>/dev/stderr
+  exit 1
+fi
+
+while IFS='  ' read -r expected_checksum filename; do
+  # Skip empty lines or lines without two fields
+  if [[ -z ${filename} ]]; then
+    continue
+  fi
+  printf "Verifying checksum for %s ... " "${filename}"
+  actual_checksum=$(sha256sum "${filename}" | awk '{print $1}')
+  if [[ "${actual_checksum}" == "${expected_checksum}" ]]; then
+    echo -e "${GREEN}OK${NC}"
+  else
+    echo -e "${RED}FAILED${NC}"
+    echo "  Expected: ${expected_checksum}"
+    echo "  Actual:   ${actual_checksum}"
+    ALL_OK=0
+  fi
+done < checksums.txt
+
+if [[ ${ALL_OK} -eq 1 ]]; then
+  echo -e "${GREEN}All checksums verified successfully.${NC}"
+  exit 0
+else
+  echo -e "${RED}Checksums verification failed.${NC}"
+  exit 1
+fi

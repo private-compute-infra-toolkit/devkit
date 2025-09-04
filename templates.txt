@@ -1,0 +1,2 @@
+--template cpp --args toolchain=llvm_bootstrapped
+--template cpp --args toolchain=llvm_custom_sysroot

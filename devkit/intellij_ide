@@ -1,0 +1,56 @@
+#!/bin/bash
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+
+DEVKIT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+readonly DEVKIT
+
+readonly SCRIPTS="${DEVKIT}/../scripts"
+readonly IMAGES="${DEVKIT}/../images"
+
+source "${SCRIPTS}/lib_logging.sh"
+
+BUILD_OUTPUT="$("${DEVKIT}/docker/build.py" intellij-ide --print-tag --search-path "${IMAGES}")"
+INETLLIJ_IDE_IMAGE="$(echo "${BUILD_OUTPUT}" | tail -n 1)"
+
+JETBRAINS_CONFIG_HOME="${HOME}/.config/JetBrains"
+JETBRAINS_CACHE_HOME="${HOME}/.cache/JetBrains"
+FONTCONFIG_CACHE_HOME="${HOME}/.cache/fontconfig"
+JETBRAINS_SHARE_LOCAL_HOME="${HOME}/.local/share/JetBrains"
+SYMBOLS_SHARE_LOCAL_HOME="${HOME}/.local/share/Symbols"
+HOME_JAVA="${HOME}/.java"
+
+mkdir -p "${JETBRAINS_CONFIG_HOME}"
+mkdir -p "${JETBRAINS_CACHE_HOME}"
+mkdir -p "${FONTCONFIG_CACHE_HOME}"
+mkdir -p "${JETBRAINS_SHARE_LOCAL_HOME}"
+mkdir -p "${SYMBOLS_SHARE_LOCAL_HOME}"
+mkdir -p "${HOME_JAVA}"
+
+DISPLAY_SOCKET="/tmp/.X11-unix"
+
+"${SCRIPTS}/docker_run" \
+  --volume="${JETBRAINS_CONFIG_HOME}:${JETBRAINS_CONFIG_HOME}" \
+  --volume="${JETBRAINS_CACHE_HOME}:${JETBRAINS_CACHE_HOME}" \
+  --volume="${FONTCONFIG_CACHE_HOME}:${FONTCONFIG_CACHE_HOME}" \
+  --volume="${JETBRAINS_SHARE_LOCAL_HOME}:${JETBRAINS_SHARE_LOCAL_HOME}" \
+  --volume="${SYMBOLS_SHARE_LOCAL_HOME}:${SYMBOLS_SHARE_LOCAL_HOME}" \
+  --volume="${HOME_JAVA}:${HOME_JAVA}" \
+  --volume="${DISPLAY_SOCKET}:${DISPLAY_SOCKET}" \
+  --env="DISPLAY" \
+  "${INETLLIJ_IDE_IMAGE}" \
+  /opt/intellij/bin/idea

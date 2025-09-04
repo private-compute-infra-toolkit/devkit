@@ -1,0 +1,5 @@
+{%- if toolchain == "llvm_custom_sysroot" -%}
+24e7a689fc0e700617b0cf8331d149ba9f5e3c6aa74aa3089dd8e80348ff397c  bazel-bin/src/main
+{%- elif toolchain == "llvm_bootstrapped" -%}
+ba0a57085da8838ab541996b69a5598328cd09b5fe87e10cb8ef236547de14d2  bazel-bin/src/main
+{%- endif -%}
