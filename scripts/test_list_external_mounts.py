@@ -262,6 +262,40 @@ class ListExternalMountsTest(unittest.TestCase):
             },
         )
 
+    def test_bazel_handling_recursively(self) -> None:
+        """Test bazel-* symlinks are ignored recursively."""
+        sub_dir = self.scan_dir / "sub"
+        sub_dir.mkdir()
+
+        # This symlink should be ignored.
+        bazel_sub_dir_target = self.test_dir / "bazel-sub-dir-target"
+        bazel_sub_dir_target.mkdir()
+        (sub_dir / "bazel-dir").symlink_to(bazel_sub_dir_target)
+
+        # This symlink should be found.
+        non_bazel_dir = sub_dir / "not-bazel"
+        non_bazel_dir.mkdir()
+        external_dir = self.test_dir / "external_for_recursive"
+        external_dir.mkdir()
+        (non_bazel_dir / "link_to_external").symlink_to(external_dir)
+
+        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        self.assertEqual(
+            result,
+            {
+                external_dir.resolve(),
+            },
+        )
+
+    def test_symlink_with_relative_path_to_external_dir(self) -> None:
+        """Test symlink with a relative path to an external directory."""
+        sub_dir = self.scan_dir / "sub"
+        sub_dir.mkdir()
+        link_path = sub_dir / "link_to_external"
+        link_path.symlink_to("../../external")
+        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        self.assertEqual(result, {self.external_dir.resolve()})
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

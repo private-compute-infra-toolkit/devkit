@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 0.6.0 (2025-09-05)
+
+
+### Features
+
+* Automatic mounting of .git dir
+* ignore bazel-* symlinks recursively
+
+
+### Bug Fixes
+
+* Proper handling of relative symlinks
+
 ## 0.5.0 (2025-09-04)
 
 

@@ -116,7 +116,7 @@ def generate_bazel_events_folder(
     """Calls `generate_build_event_json` for every bazel target in a list.
 
     If the targets list is empty, it generates a single 'bep.json'.
-    Otherwise, it generates 'bep_{target_name}.json' for each specified target.
+    Otherwise, it generates '<target_name>/bep.json' for each specified target.
 
     Args:
         targets: list of bazel targets to generate BEP
@@ -133,8 +133,9 @@ def generate_bazel_events_folder(
     else:
         for bazel_target in targets:
             # Replacing ':' with '_' to avoid problems with file naming
-            sanitized_name = bazel_target.replace(":", "_").split("/")[-1]
-            output_file = output_dir / f"bep_{sanitized_name}.json"
+            sanitized_target_name = bazel_target.replace(":", "_").split("/")[-1]
+            output_file = output_dir / sanitized_target_name / "bep.json"
+            output_file.parent.mkdir(parents=True, exist_ok=True)
             _process_target_and_save(bazel_target, output_file, command)
 
 

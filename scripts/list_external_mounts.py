@@ -44,7 +44,7 @@ def list_external_mounts(scan_dir: Path) -> set[Path]:
             for name in all_entries:
                 path = root_path / name
                 if path.is_symlink():
-                    if root_path == scan_dir_abs and name.startswith("bazel-"):
+                    if name.startswith("bazel-"):
                         continue
                     _process_symlink(path, scan_dir_abs, external_paths, worklist)
 
@@ -81,7 +81,9 @@ def _process_symlink(
             return
 
         # Check if the target is outside the scan directory.
-        common = os.path.commonpath([str(scan_dir_abs), str(abs_target)])
+        common = os.path.commonpath(
+            [str(scan_dir_abs), os.path.normpath(str(abs_target))]
+        )
         if os.path.normpath(common) != str(scan_dir_abs):
             norm_target = Path(os.path.normpath(str(abs_target)))
             if norm_target not in external_paths:

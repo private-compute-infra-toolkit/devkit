@@ -231,15 +231,19 @@ class TestBepGeneration(unittest.TestCase):
             generate_bazel_events_folder(targets, command, output_dir)
 
             # Check that an attempt was made to create the correct directory
-            mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
+            mock_mkdir.assert_called_with(parents=True, exist_ok=True)
+            # Check if `mkdir` was called once for each target + one for parent dir
+            self.assertEqual(mock_mkdir.call_count, 3)
 
             # Check if `generate_build_event_json` was called for each target
             self.assertEqual(mock_generate_json.call_count, 2)
 
             # Verify the calls for each target, including the sanitized filename
             expected_calls = [
-                call("//services/api:foo", output_dir / "bep_api_foo.json", command),
-                call("//common:bar", output_dir / "bep_common_bar.json", command),
+                call(
+                    "//services/api:foo", output_dir / "api_foo" / "bep.json", command
+                ),
+                call("//common:bar", output_dir / "common_bar" / "bep.json", command),
             ]
             mock_generate_json.assert_has_calls(expected_calls, any_order=True)
 

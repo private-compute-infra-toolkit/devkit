@@ -78,6 +78,14 @@ while IFS= read -r path; do
   ADDITIONAL_MOUNTS+=("--volume=${path}:${path}")
 done < <("${SCRIPTS}/list_external_mounts.py")
 
+if git rev-parse --is-inside-work-tree &>/dev/null; then
+  GIT_DIR="$(git rev-parse --absolute-git-dir)"
+  readonly GIT_DIR
+  if [[ "${GIT_DIR}" != "${PWD}"* ]]; then
+    ADDITIONAL_MOUNTS+=("--volume=${GIT_DIR}:${GIT_DIR}")
+  fi
+fi
+
 declare -a ADDITIONAL_ENV=()
 
 declare -a DOCKER_RUN_ARGS=()
