@@ -1,0 +1,9 @@
+usage: check_checksums [OPTION]...
+
+  This script is designed to verify the integrity of files by checking their
+  SHA-256 checksums. It verifies files against a 'checksums.txt' file in the
+  current directory. Each line in 'checksums.txt' must contain the expected
+  SHA-256 checksum, followed by two spaces, and then the filename.
+
+  Options:
+    -h, --help                Show this help message and exit.

@@ -1,0 +1,3 @@
+usage:
+  devkit/vscode_ide <options>
+    --server                   run in server mode

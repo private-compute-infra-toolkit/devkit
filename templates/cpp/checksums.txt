@@ -1,5 +1,5 @@
 {%- if toolchain == "llvm_custom_sysroot" -%}
-24e7a689fc0e700617b0cf8331d149ba9f5e3c6aa74aa3089dd8e80348ff397c  bazel-bin/src/main
+7a55b6ed6ee9f97e634af62f81f809d6ecaf9cb73d198399885e33fd92adc77b  bazel-bin/src/main
 {%- elif toolchain == "llvm_bootstrapped" -%}
 ba0a57085da8838ab541996b69a5598328cd09b5fe87e10cb8ef236547de14d2  bazel-bin/src/main
 {%- endif -%}

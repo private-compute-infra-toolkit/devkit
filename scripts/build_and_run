@@ -16,18 +16,17 @@
 set -o errexit
 set -o nounset
 
-SCRIPTS="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+SCRIPTS="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
 readonly SCRIPTS
 
 source "${SCRIPTS}/lib_logging.sh"
 
-readonly DEVKIT="${SCRIPTS}/../devkit"
 readonly IMAGES="${SCRIPTS}/../images"
 
 declare -r IMAGE_NAME="$1"
 shift
 
-BUILD_CMD="${DEVKIT}/docker/build.py ${IMAGE_NAME} --print-tag --search-path ${IMAGES}"
+BUILD_CMD="${SCRIPTS}/docker/build.py ${IMAGE_NAME} --print-tag --search-path ${IMAGES}"
 readonly BUILD_CMD
 
 BUILD_OUTPUT="$(${BUILD_CMD})" || { echo "${BUILD_OUTPUT}"; exit 1; }

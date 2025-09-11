@@ -1,0 +1,4 @@
+usage:
+  devkit/test <options>
+    --suffix <string>          image suffix
+    -h | --help                show this help message and exit

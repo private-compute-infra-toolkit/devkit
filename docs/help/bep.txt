@@ -1,0 +1,13 @@
+usage: bep.py [-h] [--targets TARGETS [TARGETS ...]] [--command {fetch,build}]
+              [--output_dir OUTPUT_DIR]
+
+Generates Bazel Build Event Protocol (BEP) JSON filesfor a list of targets.
+
+options:
+  -h, --help            show this help message and exit
+  --targets TARGETS [TARGETS ...]
+                        A list of Bazel targets to process.
+  --command {fetch,build}
+                        The Bazel command to run ('fetch' or 'build').
+  --output_dir OUTPUT_DIR
+                        Output directory for BEP logs.

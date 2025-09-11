@@ -27,7 +27,7 @@ import graphlib
 # Ensure the package root is in the path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from devkit.docker import build
+from scripts.docker import build
 
 
 class SysExitCalled(Exception):
@@ -300,7 +300,7 @@ class TestBuildScript(unittest.TestCase):
 
     @patch("os.path.exists", return_value=True)
     @patch("os.path.realpath", return_value="/abs/path/to/Dockerfile")
-    @patch("devkit.docker.build.calculate_sha256", side_effect=FileNotFoundError)
+    @patch("scripts.docker.build.calculate_sha256", side_effect=FileNotFoundError)
     def test_process_image_calculate_sha_file_not_found(
         self,
         unused_mock_sha: MagicMock,
@@ -314,9 +314,9 @@ class TestBuildScript(unittest.TestCase):
 
     @patch("os.path.exists", return_value=True)
     @patch("os.path.realpath", return_value="/abs/path/to/Dockerfile")
-    @patch("devkit.docker.build.calculate_sha256", return_value="sha123")
-    @patch("devkit.docker.build.get_image_tag", return_value="tag123")
-    @patch("devkit.docker.build.manage_docker_image")
+    @patch("scripts.docker.build.calculate_sha256", return_value="sha123")
+    @patch("scripts.docker.build.get_image_tag", return_value="tag123")
+    @patch("scripts.docker.build.manage_docker_image")
     def test_process_image_success(
         self,
         mock_manage: MagicMock,
@@ -344,9 +344,9 @@ class TestBuildScript(unittest.TestCase):
 
     @patch("os.path.exists", return_value=True)
     @patch("os.path.realpath", return_value="/abs/path/to/Dockerfile")
-    @patch("devkit.docker.build.calculate_sha256", return_value="sha123")
-    @patch("devkit.docker.build.get_image_tag", return_value="tag123")
-    @patch("devkit.docker.build.manage_docker_image")
+    @patch("scripts.docker.build.calculate_sha256", return_value="sha123")
+    @patch("scripts.docker.build.get_image_tag", return_value="tag123")
+    @patch("scripts.docker.build.manage_docker_image")
     def test_process_image_print_tag_mode(
         self,
         unused_mock_manage: MagicMock,
@@ -387,10 +387,10 @@ class TestBuildScript(unittest.TestCase):
         self.mock_sys_exit.assert_called_once_with(1)
 
     @patch("argparse.ArgumentParser")
-    @patch("devkit.docker.build.load_config")
-    @patch("devkit.docker.build.load_image_configs")
-    @patch("devkit.docker.build.get_dependency_subgraph")
-    @patch("devkit.docker.build.process_image")
+    @patch("scripts.docker.build.load_config")
+    @patch("scripts.docker.build.load_image_configs")
+    @patch("scripts.docker.build.get_dependency_subgraph")
+    @patch("scripts.docker.build.process_image")
     def test_main_build_target(
         self,
         mock_process: MagicMock,
@@ -419,10 +419,10 @@ class TestBuildScript(unittest.TestCase):
         mock_process.assert_called_once_with("a", {}, {}, False, None, ["path"])
 
     @patch("argparse.ArgumentParser")
-    @patch("devkit.docker.build.load_config")
-    @patch("devkit.docker.build.load_image_configs")
+    @patch("scripts.docker.build.load_config")
+    @patch("scripts.docker.build.load_image_configs")
     @patch("graphlib.TopologicalSorter")
-    @patch("devkit.docker.build.process_image")
+    @patch("scripts.docker.build.process_image")
     def test_main_build_all(
         self,
         mock_process: MagicMock,
@@ -490,8 +490,8 @@ class TestBuildScript(unittest.TestCase):
         self.assertEqual(actual_calls, expected_calls)
 
     @patch("argparse.ArgumentParser")
-    @patch("devkit.docker.build.load_config")
-    @patch("devkit.docker.build.load_image_configs")
+    @patch("scripts.docker.build.load_config")
+    @patch("scripts.docker.build.load_image_configs")
     def test_main_print_tag_no_target(
         self,
         mock_load_images: MagicMock,
@@ -507,8 +507,8 @@ class TestBuildScript(unittest.TestCase):
         self.mock_sys_exit.assert_called_once_with(1)
 
     @patch("argparse.ArgumentParser")
-    @patch("devkit.docker.build.load_config")
-    @patch("devkit.docker.build.load_image_configs")
+    @patch("scripts.docker.build.load_config")
+    @patch("scripts.docker.build.load_image_configs")
     def test_main_print_tag_invalid_target(
         self,
         mock_load_images: MagicMock,
@@ -524,8 +524,8 @@ class TestBuildScript(unittest.TestCase):
         self.mock_sys_exit.assert_called_once_with(1)
 
     @patch("argparse.ArgumentParser")
-    @patch("devkit.docker.build.load_config")
-    @patch("devkit.docker.build.load_image_configs")
+    @patch("scripts.docker.build.load_config")
+    @patch("scripts.docker.build.load_image_configs")
     def test_main_invalid_target(
         self,
         mock_load_images: MagicMock,
@@ -541,8 +541,8 @@ class TestBuildScript(unittest.TestCase):
         self.mock_sys_exit.assert_called_once_with(1)
 
     @patch("argparse.ArgumentParser")
-    @patch("devkit.docker.build.load_config")
-    @patch("devkit.docker.build.load_image_configs")
+    @patch("scripts.docker.build.load_config")
+    @patch("scripts.docker.build.load_image_configs")
     @patch("graphlib.TopologicalSorter", side_effect=graphlib.CycleError("cycle"))
     def test_main_cycle_error(
         self,
@@ -563,9 +563,9 @@ class TestBuildScript(unittest.TestCase):
         self.mock_sys_exit.assert_called_once_with(1)
 
     @patch("argparse.ArgumentParser")
-    @patch("devkit.docker.build.load_config")
-    @patch("devkit.docker.build.load_image_configs")
-    @patch("devkit.docker.build.get_dependency_subgraph")
+    @patch("scripts.docker.build.load_config")
+    @patch("scripts.docker.build.load_image_configs")
+    @patch("scripts.docker.build.get_dependency_subgraph")
     def test_main_print_tag_not_processed(
         self,
         mock_subgraph: MagicMock,

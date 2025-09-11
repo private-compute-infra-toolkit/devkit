@@ -296,6 +296,21 @@ class ListExternalMountsTest(unittest.TestCase):
         result = list_external_mounts.list_external_mounts(self.scan_dir)
         self.assertEqual(result, {self.external_dir.resolve()})
 
+    def test_venv_directory_is_ignored(self) -> None:
+        """Test that .venv directories are not scanned."""
+        venv_dir = self.scan_dir / ".venv"
+        venv_dir.mkdir()
+
+        (venv_dir / "link_to_external").symlink_to(self.external_dir)
+
+        external_dir2 = self.test_dir / "external2"
+        external_dir2.mkdir()
+        (self.scan_dir / "link_to_external2").symlink_to(external_dir2)
+
+        result = list_external_mounts.list_external_mounts(self.scan_dir)
+
+        self.assertEqual(result, {external_dir2.resolve()})
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

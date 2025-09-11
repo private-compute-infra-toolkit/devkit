@@ -1,0 +1,12 @@
+usage: dev [--help] [COMMAND] [ARG]...
+
+Runs a command inside the development environment container.
+
+This script provides a containerized development environment with tools like
+gemini, pre-commit and gitlint. If no command is provided, it starts an
+interactive bash session.
+
+All arguments are passed on to the command executed inside the container.
+
+Options:
+  --help                Show this help message and exit.

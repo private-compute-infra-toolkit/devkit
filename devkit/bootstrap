@@ -16,7 +16,7 @@
 set -o errexit
 set -o nounset
 
-DEVKIT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+DEVKIT="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
 readonly DEVKIT
 
 readonly SCRIPTS="${DEVKIT}/../scripts"

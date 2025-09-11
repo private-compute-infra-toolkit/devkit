@@ -40,7 +40,7 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-SCRIPTS="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+SCRIPTS="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
 readonly SCRIPTS
 
 readonly DEVKIT="${SCRIPTS}/../devkit"

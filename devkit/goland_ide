@@ -24,33 +24,24 @@ readonly IMAGES="${DEVKIT}/../images"
 
 source "${SCRIPTS}/lib_logging.sh"
 
-BUILD_OUTPUT="$("${SCRIPTS}/docker/build.py" intellij-ide --print-tag --search-path "${IMAGES}")"
-INETLLIJ_IDE_IMAGE="$(echo "${BUILD_OUTPUT}" | tail -n 1)"
+BUILD_OUTPUT="$("${SCRIPTS}/docker/build.py" goland-ide --print-tag --search-path "${IMAGES}")"
+GOLAND_IDE_IMAGE="$(echo "${BUILD_OUTPUT}" | tail -n 1)"
 
 JETBRAINS_CONFIG_HOME="${HOME}/.config/JetBrains"
 JETBRAINS_CACHE_HOME="${HOME}/.cache/JetBrains"
-FONTCONFIG_CACHE_HOME="${HOME}/.cache/fontconfig"
 JETBRAINS_SHARE_LOCAL_HOME="${HOME}/.local/share/JetBrains"
-SYMBOLS_SHARE_LOCAL_HOME="${HOME}/.local/share/Symbols"
-HOME_JAVA="${HOME}/.java"
 
 mkdir -p "${JETBRAINS_CONFIG_HOME}"
 mkdir -p "${JETBRAINS_CACHE_HOME}"
-mkdir -p "${FONTCONFIG_CACHE_HOME}"
 mkdir -p "${JETBRAINS_SHARE_LOCAL_HOME}"
-mkdir -p "${SYMBOLS_SHARE_LOCAL_HOME}"
-mkdir -p "${HOME_JAVA}"
 
 DISPLAY_SOCKET="/tmp/.X11-unix"
 
 "${SCRIPTS}/docker_run" \
   --volume="${JETBRAINS_CONFIG_HOME}:${JETBRAINS_CONFIG_HOME}" \
   --volume="${JETBRAINS_CACHE_HOME}:${JETBRAINS_CACHE_HOME}" \
-  --volume="${FONTCONFIG_CACHE_HOME}:${FONTCONFIG_CACHE_HOME}" \
   --volume="${JETBRAINS_SHARE_LOCAL_HOME}:${JETBRAINS_SHARE_LOCAL_HOME}" \
-  --volume="${SYMBOLS_SHARE_LOCAL_HOME}:${SYMBOLS_SHARE_LOCAL_HOME}" \
-  --volume="${HOME_JAVA}:${HOME_JAVA}" \
   --volume="${DISPLAY_SOCKET}:${DISPLAY_SOCKET}" \
   --env="DISPLAY" \
-  "${INETLLIJ_IDE_IMAGE}" \
-  /opt/intellij/bin/idea
+  "${GOLAND_IDE_IMAGE}" \
+  /opt/goland/bin/goland

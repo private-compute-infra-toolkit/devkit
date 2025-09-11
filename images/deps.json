@@ -50,5 +50,10 @@
         "deps": {
             "BASE": "dev-env"
         }
+    },
+    "goland-ide": {
+        "deps": {
+            "BASE": "ide-env"
+        }
     }
 }

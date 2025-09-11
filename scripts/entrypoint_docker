@@ -16,7 +16,7 @@
 set -o errexit
 set -o nounset
 
-SCRIPTS="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+SCRIPTS="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
 readonly SCRIPTS
 
 source "${SCRIPTS}/lib_logging.sh"

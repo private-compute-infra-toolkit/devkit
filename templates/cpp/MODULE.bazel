@@ -18,9 +18,20 @@ module(
 )
 
 {% if toolchain == "llvm_custom_sysroot" %}
-local_sysroot = use_extension("//devkit/toolchains:extensions.bzl", "local_sysroot")
-local_sysroot.sysroot(sha256 = "e110e6c4493ea54fba99f59194b0126011ebfc3f0cd290cf7f5462486508eea7", config = "//:devkit.json")
-use_repo(local_sysroot, "sysroot")
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "confidential-federated-compute",
+    build_file_content = """
+filegroup(
+  name = "sysroot",
+  srcs = glob(["*/**"]),
+  visibility = ["//visibility:public"],
+)
+""",
+    sha256 = "f58c289b3ccb28895ad8ca408ac366e709037088e8b5c28aca18212adc18c31e",
+    urls = ["https://github.com/google-parfait/confidential-federated-compute/releases/download/sysroot-20250618/sysroot.tar.xz"],
+)
 
 bazel_dep(name = "toolchains_llvm", version = "1.4.0")
 
@@ -31,7 +42,7 @@ llvm.toolchain(
 )
 llvm.sysroot(
     name = "llvm_toolchain_with_custom_sysroot",
-    label = "@sysroot//:files",
+    label = "@confidential-federated-compute//:sysroot",
     targets = ["linux-x86_64"],
 )
 use_repo(llvm, "llvm_toolchain_with_custom_sysroot")

@@ -39,6 +39,8 @@ def list_external_mounts(scan_dir: Path) -> set[Path]:
         for root, dirs, files in os.walk(
             str(current_dir), topdown=True, followlinks=False
         ):
+            if ".venv" in dirs:
+                dirs.remove(".venv")
             root_path = Path(root)
             all_entries = dirs + files
             for name in all_entries:

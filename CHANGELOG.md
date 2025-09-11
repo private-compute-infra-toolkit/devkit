@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.0.0 (2025-09-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* Delete devkit/.bazelrc
+
+### Features
+
+* Add GoLand IDE support
+* Added bep.txt file in doc/help
+* Added bootstrap.txt file in docs/help
+* Added check_checksums.txt file in doc/help
+* Added dev.txt file in doc/help
+* Added test.txt file in doc/help
+* Added vscode_ide.txt file in doc/help
+* Delete devkit/.bazelrc
+* fixed bep.txt file in doc/help
+* Hide docker/build.py script from the user
+* Ignore .venv directories during scan
+* Switch to CFC sysroot
+
+
+### Bug Fixes
+
+* Improve symlink resolution
+* Improve symlink resolution (part 2/2)
+* Print usage to stdout
+
 ## 0.6.0 (2025-09-05)
 
 

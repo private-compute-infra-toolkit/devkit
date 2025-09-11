@@ -16,7 +16,7 @@
 set -o errexit
 set -o nounset
 
-DEVKIT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+DEVKIT="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
 readonly DEVKIT
 
 readonly SCRIPTS="${DEVKIT}/../scripts"
@@ -24,7 +24,7 @@ readonly IMAGES="${DEVKIT}/../images"
 
 source "${SCRIPTS}/lib_logging.sh"
 
-BUILD_OUTPUT="$("${DEVKIT}/docker/build.py" clion-ide --print-tag --search-path "${IMAGES}")"
+BUILD_OUTPUT="$("${SCRIPTS}/docker/build.py" clion-ide --print-tag --search-path "${IMAGES}")"
 CLION_IDE_IMAGE="$(echo "${BUILD_OUTPUT}" | tail -n 1)"
 
 JETBRAINS_CONFIG_HOME="${HOME}/.config/JetBrains"

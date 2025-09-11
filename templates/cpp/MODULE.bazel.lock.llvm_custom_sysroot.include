@@ -151,25 +151,6 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
-    "//devkit/toolchains:extensions.bzl%local_sysroot": {
-      "general": {
-        "bzlTransitiveDigest": "T6mWkCEr10oO/WkjujAWVT2s1wRRwyG55Qxvk49SUAs=",
-        "usagesDigest": "Zm7MqI81GEJ97dAmeSZT0XOuySwJlksXXoAAGvuVRfs=",
-        "recordedFileInputs": {},
-        "recordedDirentsInputs": {},
-        "envVariables": {},
-        "generatedRepoSpecs": {
-          "sysroot": {
-            "repoRuleId": "@@//devkit/toolchains:rules.bzl%local_archive",
-            "attributes": {
-              "sha256": "e110e6c4493ea54fba99f59194b0126011ebfc3f0cd290cf7f5462486508eea7",
-              "config": "@@//:devkit.json"
-            }
-          }
-        },
-        "recordedRepoMappingEntries": []
-      }
-    },
     "@@apple_support+//crosstool:setup.bzl%apple_cc_configure_extension": {
       "general": {
         "bzlTransitiveDigest": "E970FlMbwpgJPdPUQzatKh6BMfeE0ZpWABvwshh7Tmg=",
@@ -268,7 +249,7 @@
     "@@toolchains_llvm+//toolchain/extensions:llvm.bzl%llvm": {
       "general": {
         "bzlTransitiveDigest": "n8WR0DxEQ5FgfuREm47KayUAJKtFHcMNZLKerT+ixFY=",
-        "usagesDigest": "yh0PbkyM8tvyhfWBh3JS40gUXf2krHVII3LAQe+mQ9U=",
+        "usagesDigest": "jicxo5rA35JNRuPE4zRqha+DZIactuKXQssQi6Kq/Gc=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -320,7 +301,7 @@
               "unfiltered_compile_flags": {},
               "toolchain_roots": {},
               "sysroot": {
-                "linux-x86_64": "'@@+local_sysroot+sysroot//:files'"
+                "linux-x86_64": "'@@+_repo_rules+confidential-federated-compute//:sysroot'"
               }
             }
           }
@@ -328,8 +309,8 @@
         "recordedRepoMappingEntries": [
           [
             "",
-            "sysroot",
-            "+local_sysroot+sysroot"
+            "confidential-federated-compute",
+            "+_repo_rules+confidential-federated-compute"
           ],
           [
             "toolchains_llvm+",
