@@ -14,9 +14,13 @@
 # limitations under the License.
 """
 This script lists external mounts, including intermediate symlinks.
+
+It takes an optional command-line argument to specify the root directory for the search.
+If not provided, it uses the current working directory.
 """
 import os
 from pathlib import Path
+import argparse
 
 
 def list_external_mounts(scan_dir: Path) -> set[Path]:
@@ -120,6 +124,26 @@ def _minimize_paths(paths: set[Path]) -> set[Path]:
     return minimal_paths
 
 
-if __name__ == "__main__":  # pragma: no cover
-    for p in list_external_mounts(Path.cwd()):
+def main() -> None:
+    """
+    Parses command-line arguments and lists external mounts.
+    """
+    parser = argparse.ArgumentParser(
+        description="This script lists external mounts, "
+        "including intermediate symlinks."
+    )
+    parser.add_argument(
+        "root_dir",
+        nargs="?",
+        default=Path.cwd(),
+        help="The root directory to start the search from. "
+        "Defaults to the current directory.",
+        type=Path,
+    )
+    args = parser.parse_args()
+    for p in list_external_mounts(args.root_dir):
         print(p)
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()

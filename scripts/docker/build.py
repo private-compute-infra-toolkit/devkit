@@ -24,10 +24,24 @@ import sys
 from typing import List, Dict, Optional, TypedDict
 import json
 import graphlib
+import logging
+from pathlib import Path
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO = ""
 ARCH = "amd64"
+
+
+def find_project_root() -> Optional[str]:
+    """Finds the project root by searching for 'devkit'."""
+    current_dir = os.getcwd()
+    while True:
+        if os.path.exists(os.path.join(current_dir, "devkit")):
+            return current_dir
+        parent_dir = os.path.dirname(current_dir)
+        if parent_dir == current_dir:  # Reached root
+            return None
+        current_dir = parent_dir
 
 
 def load_config(config_path: str) -> None:
@@ -40,7 +54,7 @@ def load_config(config_path: str) -> None:
                 if "docker" in config and "registry" in config["docker"]:
                     REPO = config["docker"]["registry"]
             except json.JSONDecodeError as e:
-                print(f"Error: Could not decode {config_path}: {e}")
+                logging.error("Could not decode %s: %s", config_path, e)
                 sys.exit(1)
 
 
@@ -57,18 +71,18 @@ def load_image_configs(search_paths: List[str]) -> ImageConfigsMap:
     for path in search_paths:
         deps_file = os.path.join(path, "deps.json")
         if os.path.exists(deps_file):
-            print(f"Loading image configs from {deps_file}")
+            logging.info("Loading image configs from %s", deps_file)
             with open(deps_file, "r", encoding="utf-8") as f:
                 try:
                     configs = json.load(f)
                     if isinstance(configs, dict):
                         all_configs.update(configs)
                     else:
-                        print(
-                            f"Warning: {deps_file} does not contain a dict of configs."
+                        logging.warning(
+                            "%s does not contain a dict of configs.", deps_file
                         )
                 except json.JSONDecodeError as e:
-                    print(f"Error: Could not decode {deps_file}: {e}")
+                    logging.error("Could not decode %s: %s", deps_file, e)
                     sys.exit(1)
     return all_configs
 
@@ -115,38 +129,43 @@ def manage_docker_image(
     """
     try:
         # 1. Check if image exists locally
-        print(f"Checking for local image: {tag}")
+        logging.info("Checking for local image: %s", tag)
         inspect_cmd = ["docker", "image", "inspect", tag]
         inspect_result = subprocess.run(
             inspect_cmd, capture_output=True, text=True, check=False
         )
 
         if inspect_result.returncode == 0:
-            print(f"Image {tag} already exists locally. Skipping build/pull.")
+            logging.info("Image %s already exists locally. Skipping build/pull.", tag)
             return
 
         # 2. If not local, check manifest remotely
-        print(f"Checking for remote image manifest: {tag}")
+        logging.info("Checking for remote image manifest: %s", tag)
         manifest_inspect_cmd = ["docker", "manifest", "inspect", tag]
         manifest_result = subprocess.run(
             manifest_inspect_cmd, capture_output=True, text=True, check=False
         )
 
         if manifest_result.returncode == 0:
-            print(f"Image {tag} found in remote registry. Pulling...")
+            logging.info("Image %s found in remote registry. Pulling...", tag)
+            print(f"Pulling image: {tag}...", file=sys.stderr, end="", flush=True)
             pull_cmd = ["docker", "pull", tag]
             process = subprocess.run(
                 pull_cmd, check=True, text=True, capture_output=True
             )
+            print(" [OK]", file=sys.stderr)
             if process.stdout:
-                print(process.stdout.strip())
+                logging.info(process.stdout.strip())
             if process.stderr:
-                print(process.stderr.strip())
-            print(f"Image {tag} pulled successfully.")
+                logging.warning(process.stderr.strip())
+            logging.info("Image %s pulled successfully.", tag)
             return
 
         # 4. If manifest does not exist, build and push
-        print(f"Image {tag} not found locally or in remote registry. Building...")
+        logging.info(
+            "Image %s not found locally or in remote registry. Building...", tag
+        )
+        print(f"Building image: {tag}...", file=sys.stderr, end="", flush=True)
 
         docker_build_cmd = [
             "docker",
@@ -168,45 +187,50 @@ def manage_docker_image(
 
         docker_build_cmd.append(context_path)  # Docker build context
 
-        print(f"Executing build: {' '.join(docker_build_cmd)}")
+        logging.info("Executing build: %s", " ".join(docker_build_cmd))
         process = subprocess.run(
             docker_build_cmd, check=True, text=True, capture_output=True
         )
+        print(" [OK]", file=sys.stderr)
         if process.stdout:
-            print(process.stdout.strip())
+            logging.info(process.stdout.strip())
         if process.stderr:
-            print(process.stderr.strip())
-        print(f"Image {tag} built successfully.")
+            logging.warning(process.stderr.strip())
+        logging.info("Image %s built successfully.", tag)
 
-        print(f"Pushing image {tag}...")
+        logging.info("Pushing image %s...", tag)
+        print(f"Pushing image: {tag}...", file=sys.stderr, end="", flush=True)
         push_cmd = ["docker", "push", tag]
         push_result = subprocess.run(
             push_cmd, check=False, text=True, capture_output=True
         )
         if push_result.returncode == 0:
+            print(" [OK]", file=sys.stderr)
             if push_result.stdout:
-                print(push_result.stdout.strip())
+                logging.info(push_result.stdout.strip())
             if push_result.stderr:
-                print(push_result.stderr.strip())
-            print(f"Image {tag} pushed successfully.")
+                logging.warning(push_result.stderr.strip())
+            logging.info("Image %s pushed successfully.", tag)
         else:
-            print(
-                f"Warning: Failed to push image {tag}. " "Continuing with local image."
+            print(" [FAILED]", file=sys.stderr)
+            logging.warning(
+                "Failed to push image %s. Continuing with local image.", tag
             )
             if push_result.stderr:
-                print(f"Details: {push_result.stderr.strip()}")
+                logging.warning("Details: %s", push_result.stderr.strip())
 
     except subprocess.CalledProcessError as e:
-        print(f"Error during Docker operation for {tag}:")
-        print(f"Command: {' '.join(e.cmd)}")
+        print(" [FAILED]", file=sys.stderr)
+        logging.error("Error during Docker operation for %s:", tag)
+        logging.error("Command: %s", " ".join(e.cmd))
         if e.stdout:
-            print(f"Stdout: {e.stdout.strip()}")
+            logging.error("Stdout: %s", e.stdout.strip())
         if e.stderr:
-            print(f"Stderr: {e.stderr.strip()}")
+            logging.error("Stderr: %s", e.stderr.strip())
         sys.exit(e.returncode if e.returncode != 0 else 1)
     except FileNotFoundError:
-        print(
-            "Error: Docker command not found. "
+        logging.error(
+            "Docker command not found. "
             "Please ensure Docker is installed and in PATH.",
         )
         sys.exit(1)
@@ -224,7 +248,7 @@ def process_image(
     Processes a single image: calculates its tag, builds/pulls/pushes it,
     and optionally prints the tag.
     """
-    print(f"\n=== Processing: {image_name} ===")
+    logging.info("=== Processing: %s ===", image_name)
     dockerfile_name = f"{image_name}.Dockerfile"
     dockerfile_path = None
 
@@ -235,9 +259,11 @@ def process_image(
             break
 
     if not dockerfile_path:
-        print(
-            f"Error: Dockerfile {dockerfile_name} not found for image "
-            f"'{image_name}' in any of the search paths: {search_paths}."
+        logging.error(
+            "Dockerfile %s not found for image '%s' in any of the search paths: %s.",
+            dockerfile_name,
+            image_name,
+            search_paths,
         )
         sys.exit(1)
 
@@ -248,11 +274,13 @@ def process_image(
 
     for arg_name, dep_image_name in dependencies.items():
         if dep_image_name not in generated_tags:
-            print(
-                f"Error: Dependency tag for '{dep_image_name}' (needed by "
-                f"'{image_name}' as build arg '{arg_name}') not found."
+            logging.error(
+                "Dependency tag for '%s' (needed by '%s' as build arg '%s') not found.",
+                dep_image_name,
+                image_name,
+                arg_name,
             )
-            print(
+            logging.error(
                 "Ensure images are in the correct build order and all "
                 "dependencies are defined correctly."
             )
@@ -261,9 +289,12 @@ def process_image(
         dep_tag = generated_tags[dep_image_name]
         build_args_for_manage.extend([arg_name, dep_tag])
         build_args_for_sha_calc.append(f"{arg_name}={dep_tag}")
-        print(
-            f"Build arg for {image_name}: {arg_name}={dep_image_name} "
-            f"(Tag: {dep_tag})"
+        logging.info(
+            "Build arg for %s: %s=%s (Tag: %s)",
+            image_name,
+            arg_name,
+            dep_image_name,
+            dep_tag,
         )
 
     build_args_for_sha_calc.sort()
@@ -271,9 +302,10 @@ def process_image(
     try:
         current_sha = calculate_sha256(dockerfile_path, build_args_for_sha_calc)
     except FileNotFoundError:  # Should be caught by os.path.exists, but defensive.
-        print(
-            f"Error: Dockerfile {dockerfile_path} disappeared before SHA "
-            f"calculation for image {image_name}."
+        logging.error(
+            "Dockerfile %s disappeared before SHA calculation for image %s.",
+            dockerfile_path,
+            image_name,
         )
         sys.exit(1)
 
@@ -281,10 +313,10 @@ def process_image(
         f"SHA for {dockerfile_path} (Content + Sorted Build Args "
         f"[{', '.join(build_args_for_sha_calc)}]): {current_sha}"
     )
-    print(sha_info_str)
+    logging.info(sha_info_str)
 
     current_tag = get_image_tag(image_name, current_sha)
-    print(f"Tag for {image_name}: {current_tag}")
+    logging.info("Tag for %s: %s", image_name, current_tag)
     generated_tags[image_name] = current_tag
 
     context_path = os.path.dirname(dockerfile_path)
@@ -299,8 +331,9 @@ def process_image(
     else:
         # manage_docker_image handles its own print and sys.exit calls on error.
         # If it returns, it was successful.
-        print(
-            f"=== Finished processing: {image_name} ===",
+        logging.info(
+            "=== Finished processing: %s ===",
+            image_name,
         )
 
     return current_tag
@@ -344,7 +377,7 @@ def get_dependency_subgraph(
     except graphlib.CycleError as e:
         # This should ideally not happen if the full graph is acyclic,
         # but it's good practice to handle it.
-        print(f"Error: Cycle detected in dependencies for {target_image_name}: {e}")
+        logging.error("Cycle detected in dependencies for %s: %s", target_image_name, e)
         sys.exit(1)
 
 
@@ -377,9 +410,27 @@ def main() -> None:
         required=True,
         help="Search path for Dockerfiles.",
     )
+    parser.add_argument(
+        "--log-file",
+        help="Path to a file for logging. If not specified, logs to stderr.",
+        type=Path,
+    )
 
     args = parser.parse_args()
-    load_config(args.config)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(asctime)s][%(levelname)s]: %(message)s",
+        filename=args.log_file,
+        filemode="a" if args.log_file else "w",
+    )
+
+    config_path = args.config
+    if not os.path.isabs(config_path):
+        project_root = find_project_root()
+        if project_root:
+            config_path = os.path.join(project_root, config_path)
+    load_config(config_path)
 
     image_configs_map = load_image_configs(args.search_path)
 
@@ -391,29 +442,30 @@ def main() -> None:
 
     if print_tag_mode:
         if not target_image:
-            print("Error: --print-tag requires a target_image to be specified.")
+            logging.error("--print-tag requires a target_image to be specified.")
             sys.exit(1)
         target_image_for_tag_print = target_image
         if target_image_for_tag_print not in all_image_names:
-            print(
-                f"Error: Target image '{target_image_for_tag_print}' for "
-                "--print-tag is not a valid image name."
+            logging.error(
+                "Target image '%s' for --print-tag is not a valid image name.",
+                target_image_for_tag_print,
             )
             sys.exit(1)
     elif target_image and target_image not in all_image_names:
-        print(
-            f"Error: Specified target image '{target_image}' is not a valid "
-            "image name."
+        logging.error(
+            "Specified target image '%s' is not a valid image name.",
+            target_image,
         )
-        print(f"Choose from: {', '.join(all_image_names)}")
+        logging.error("Choose from: %s", ", ".join(all_image_names))
         sys.exit(1)
 
     images_to_process = []
     if target_image:
         images_to_process = get_dependency_subgraph(target_image, image_configs_map)
-        print(
-            f"Processing Docker image '{target_image}' and its "
-            f"dependencies: {', '.join(images_to_process)}..."
+        logging.info(
+            "Processing Docker image '%s' and its dependencies: %s...",
+            target_image,
+            ", ".join(images_to_process),
         )
     else:
         # If no target image, build all images in a valid topological order
@@ -423,9 +475,9 @@ def main() -> None:
         try:
             ts = graphlib.TopologicalSorter(full_graph)
             images_to_process = list(ts.static_order())
-            print("Processing all Docker images...")
+            logging.info("Processing all Docker images...")
         except graphlib.CycleError as e:
-            print(f"Error: Cycle detected in image dependencies: {e}")
+            logging.error("Cycle detected in image dependencies: %s", e)
             sys.exit(1)
 
     generated_tags: Dict[str, str] = {}
@@ -447,19 +499,19 @@ def main() -> None:
         # Fallback: If loop finishes in print_tag_mode, target wasn't found or
         # logic error. This path should ideally not be reached if validations
         # are correct.
-        print(
-            f"Error: Target image '{target_image_for_tag_print}' for "
-            "--print-tag was not processed as expected."
+        logging.error(
+            "Target image '%s' for --print-tag was not processed as expected.",
+            target_image_for_tag_print,
         )
         sys.exit(1)
     else:
         if target_image:
-            print(
-                f"Targeted Docker image '{target_image}' and its dependencies "
-                "processed successfully."
+            logging.info(
+                "Targeted Docker image '%s' and its dependencies processed successfully.",
+                target_image,
             )
         else:
-            print("All Docker images processed successfully.")
+            logging.info("All Docker images processed successfully.")
 
 
 if __name__ == "__main__":  # pragma: no cover

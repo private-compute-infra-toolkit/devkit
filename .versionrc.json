@@ -16,7 +16,9 @@
   "tagPrefix": "rc-",
   "types": [
     { "type": "feat", "scope": "deps", "section": "Dependencies" },
+    { "type": "feat", "scope": "github", "section": "GitHub" },
     { "type": "feat", "section": "Features" },
+    { "type": "fix", "scope": "github", "section": "GitHub" },
     { "type": "fix", "section": "Bug Fixes" },
     { "type": "docs", "section": "Documentation" },
     { "type": "internal", "hidden": true },

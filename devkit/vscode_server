@@ -24,8 +24,11 @@ readonly IMAGES="${DEVKIT}/../images"
 
 source "${SCRIPTS}/lib_logging.sh"
 
-BUILD_OUTPUT=$("${SCRIPTS}/docker/build.py" vscode-server --print-tag --search-path "${IMAGES}")
-VSCODE_SERVER_IMAGE=$(echo "${BUILD_OUTPUT}" | tail -n 1)
+VSCODE_SERVER_IMAGE="$("${SCRIPTS}/docker/build.py" vscode-server --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}")" || {
+  echo "Build failed. See logs for details: ${DEVKIT_LOG_FILE}" >&2
+  exit 1
+}
+readonly VSCODE_SERVER_IMAGE
 
 declare -r CODE_SERVER_CONFIG_HOME="${HOME}/.config/code-server"
 declare -r CODE_SERVER_SHARE_LOCAL_HOME="${HOME}/.local/share/code-server"

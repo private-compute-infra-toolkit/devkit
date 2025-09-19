@@ -24,10 +24,10 @@ readonly IMAGES="${DEVKIT}/../images"
 
 source "${SCRIPTS}/lib_logging.sh"
 
-declare IMAGE_NAME="build-env"
-BUILD_OUTPUT="$("${SCRIPTS}/docker/build.py" "${IMAGE_NAME}" --print-tag --search-path "${IMAGES}")"
-readonly BUILD_OUTPUT
-BUILD_ENV_IMAGE=$(echo "${BUILD_OUTPUT}" | tail -n 1)
+BUILD_ENV_IMAGE="$("${SCRIPTS}/docker/build.py" build-env --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}")" || {
+  echo "Build failed. See logs for details: ${DEVKIT_LOG_FILE}" >&2
+  exit 1
+}
 readonly BUILD_ENV_IMAGE
 
 "${SCRIPTS}/docker_run" "${BUILD_ENV_IMAGE}" python3 "${SCRIPTS}/bep.py" "$@"

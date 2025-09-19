@@ -24,8 +24,11 @@ readonly IMAGES="${DEVKIT}/../images"
 
 source "${SCRIPTS}/lib_logging.sh"
 
-BUILD_OUTPUT="$("${SCRIPTS}/docker/build.py" clion-ide --print-tag --search-path "${IMAGES}")"
-CLION_IDE_IMAGE="$(echo "${BUILD_OUTPUT}" | tail -n 1)"
+CLION_IDE_IMAGE="$("${SCRIPTS}/docker/build.py" clion-ide --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}")" || {
+  echo "Build failed. See logs for details: ${DEVKIT_LOG_FILE}" >&2
+  exit 1
+}
+readonly CLION_IDE_IMAGE
 
 JETBRAINS_CONFIG_HOME="${HOME}/.config/JetBrains"
 JETBRAINS_CACHE_HOME="${HOME}/.cache/JetBrains"

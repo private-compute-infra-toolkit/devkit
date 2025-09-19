@@ -26,7 +26,7 @@ source "${SCRIPTS}/lib_logging.sh"
 
 function usage() {
   local -i exitval=${1-1}
-  cat &>/dev/stderr << USAGE
+  cat <<USAGE
 usage:
   $0 <options>
     --server                   run in server mode
@@ -52,8 +52,11 @@ done
 
 readonly SERVER
 
-BUILD_OUTPUT=$("${SCRIPTS}/docker/build.py" vscode-ide --print-tag --search-path "${IMAGES}")
-VSCODE_IDE_IMAGE=$(echo "${BUILD_OUTPUT}" | tail -n 1)
+VSCODE_IDE_IMAGE="$("${SCRIPTS}/docker/build.py" vscode-ide --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}")" || {
+  echo "Build failed. See logs for details: ${DEVKIT_LOG_FILE}" >&2
+  exit 1
+}
+readonly VSCODE_IDE_IMAGE
 
 CODE_CONFIG_HOME="${HOME}/.config/Code"
 VSCODE_HOME="${HOME}/.vscode"

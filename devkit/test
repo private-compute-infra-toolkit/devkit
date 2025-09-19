@@ -26,7 +26,7 @@ source "${SCRIPTS}/lib_logging.sh"
 
 function usage() {
   local -i exitval=${1-1}
-  cat &>/dev/stderr << USAGE
+  cat <<USAGE
 usage:
   $0 <options>
     --suffix <string>          image suffix
@@ -56,9 +56,10 @@ if [[ -n ${SUFFIX} ]]; then
   IMAGE_NAME+="${SUFFIX}"
 fi
 
-BUILD_OUTPUT="$("${SCRIPTS}/docker/build.py" "${IMAGE_NAME}" --print-tag --search-path "${IMAGES}")"
-readonly BUILD_OUTPUT
-BUILD_ENV_IMAGE=$(echo "${BUILD_OUTPUT}" | tail -n 1)
+BUILD_ENV_IMAGE="$("${SCRIPTS}/docker/build.py" "${IMAGE_NAME}" --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}")" || {
+  echo "Build failed. See logs for details: ${DEVKIT_LOG_FILE}" >&2
+  exit 1
+}
 readonly BUILD_ENV_IMAGE
 
 #

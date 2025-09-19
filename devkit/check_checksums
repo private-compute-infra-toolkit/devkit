@@ -18,7 +18,7 @@ set -o nounset
 
 function usage() {
   declare -r -i exitval=${1-1}
-  cat &>/dev/stderr <<USAGE
+  cat <<USAGE
 usage: $(basename "${BASH_SOURCE[0]}") [OPTION]...
 
   This script is designed to verify the integrity of files by checking their

@@ -24,27 +24,10 @@ readonly IMAGES="${DEVKIT}/../images"
 
 source "${SCRIPTS}/lib_logging.sh"
 
-GOLAND_IDE_IMAGE="$("${SCRIPTS}/docker/build.py" goland-ide --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}")" || {
+BUILD_ENV_IMAGE="$("${SCRIPTS}/docker/build.py" build-env --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}")" || {
   echo "Build failed. See logs for details: ${DEVKIT_LOG_FILE}" >&2
   exit 1
 }
-readonly GOLAND_IDE_IMAGE
+readonly BUILD_ENV_IMAGE
 
-JETBRAINS_CONFIG_HOME="${HOME}/.config/JetBrains"
-JETBRAINS_CACHE_HOME="${HOME}/.cache/JetBrains"
-JETBRAINS_SHARE_LOCAL_HOME="${HOME}/.local/share/JetBrains"
-
-mkdir -p "${JETBRAINS_CONFIG_HOME}"
-mkdir -p "${JETBRAINS_CACHE_HOME}"
-mkdir -p "${JETBRAINS_SHARE_LOCAL_HOME}"
-
-DISPLAY_SOCKET="/tmp/.X11-unix"
-
-"${SCRIPTS}/docker_run" \
-  --volume="${JETBRAINS_CONFIG_HOME}:${JETBRAINS_CONFIG_HOME}" \
-  --volume="${JETBRAINS_CACHE_HOME}:${JETBRAINS_CACHE_HOME}" \
-  --volume="${JETBRAINS_SHARE_LOCAL_HOME}:${JETBRAINS_SHARE_LOCAL_HOME}" \
-  --volume="${DISPLAY_SOCKET}:${DISPLAY_SOCKET}" \
-  --env="DISPLAY" \
-  "${GOLAND_IDE_IMAGE}" \
-  /opt/goland/bin/goland
+"${SCRIPTS}/docker_run" "${BUILD_ENV_IMAGE}" python3 "${SCRIPTS}/coverage_report.py" "$@"

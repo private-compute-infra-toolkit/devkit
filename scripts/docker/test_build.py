@@ -47,6 +47,52 @@ class TestBuildScript(unittest.TestCase):
         """Tear down after tests."""
         patch.stopall()
 
+    @patch("os.path.exists")
+    @patch("os.getcwd")
+    def test_find_project_root_not_found(
+        self, mock_getcwd: MagicMock, mock_exists: MagicMock
+    ) -> None:
+        """Test find_project_root when devkit is not found."""
+        mock_getcwd.return_value = "/a/b/c"
+        mock_exists.return_value = False
+        root = build.find_project_root()
+        self.assertIsNone(root)
+        expected_calls = [
+            call(os.path.join("/a/b/c", "devkit")),
+            call(os.path.join("/a/b", "devkit")),
+            call(os.path.join("/a", "devkit")),
+            call(os.path.join("/", "devkit")),
+        ]
+        mock_exists.assert_has_calls(expected_calls)
+
+    @patch("os.path.exists")
+    @patch("os.getcwd")
+    def test_find_project_root_in_parent(
+        self, mock_getcwd: MagicMock, mock_exists: MagicMock
+    ) -> None:
+        """Test find_project_root when devkit is in a parent directory."""
+        mock_getcwd.return_value = "/a/b/c"
+        mock_exists.side_effect = [False, True]
+        root = build.find_project_root()
+        self.assertEqual(root, "/a/b")
+        expected_calls = [
+            call(os.path.join("/a/b/c", "devkit")),
+            call(os.path.join("/a/b", "devkit")),
+        ]
+        mock_exists.assert_has_calls(expected_calls)
+
+    @patch("os.path.exists")
+    @patch("os.getcwd")
+    def test_find_project_root_in_current_dir(
+        self, mock_getcwd: MagicMock, mock_exists: MagicMock
+    ) -> None:
+        """Test find_project_root when devkit is in the current directory."""
+        mock_getcwd.return_value = "/a/b/c"
+        mock_exists.return_value = True
+        root = build.find_project_root()
+        self.assertEqual(root, "/a/b/c")
+        mock_exists.assert_called_once_with(os.path.join("/a/b/c", "devkit"))
+
     @patch("os.path.exists", return_value=True)
     @patch(
         "builtins.open",
@@ -79,10 +125,10 @@ class TestBuildScript(unittest.TestCase):
 
     @patch("os.path.exists", return_value=True)
     @patch("builtins.open", new_callable=mock_open, read_data="invalid json")
-    @patch("builtins.print")
+    @patch("logging.error")
     def test_load_config_json_decode_error(
         self,
-        mock_print: MagicMock,
+        mock_log_error: MagicMock,
         unused_mock_file: MagicMock,
         unused_mock_exists: MagicMock,
     ) -> None:
@@ -90,9 +136,10 @@ class TestBuildScript(unittest.TestCase):
         with self.assertRaises(SysExitCalled):
             build.load_config("dummy/path/devkit.json")
         self.mock_sys_exit.assert_called_once_with(1)
-        mock_print.assert_called_with(
-            "Error: Could not decode dummy/path/devkit.json: "
-            "Expecting value: line 1 column 1 (char 0)"
+        mock_log_error.assert_called_once_with(
+            "Could not decode %s: %s",
+            "dummy/path/devkit.json",
+            unittest.mock.ANY,
         )
 
     @patch("os.path.join")
@@ -128,10 +175,10 @@ class TestBuildScript(unittest.TestCase):
     @patch("os.path.join")
     @patch("os.path.exists", return_value=True)
     @patch("builtins.open", new_callable=mock_open, read_data="[1, 2, 3]")
-    @patch("builtins.print")
+    @patch("logging.warning")
     def test_load_image_configs_not_a_dict(
         self,
-        mock_print: MagicMock,
+        mock_log_warning: MagicMock,
         unused_mock_file: MagicMock,
         unused_mock_exists: MagicMock,
         mock_join: MagicMock,
@@ -140,17 +187,17 @@ class TestBuildScript(unittest.TestCase):
         mock_join.return_value = "search/path/deps.json"
         configs = build.load_image_configs(["search/path"])
         self.assertEqual(configs, {})
-        mock_print.assert_any_call(
-            "Warning: search/path/deps.json does not contain a dict of configs."
+        mock_log_warning.assert_any_call(
+            "%s does not contain a dict of configs.", "search/path/deps.json"
         )
 
     @patch("os.path.join")
     @patch("os.path.exists", return_value=True)
     @patch("builtins.open", new_callable=mock_open, read_data="invalid json")
-    @patch("builtins.print")
+    @patch("logging.error")
     def test_load_image_configs_json_decode_error(
         self,
-        mock_print: MagicMock,
+        mock_log_error: MagicMock,
         unused_mock_file: MagicMock,
         unused_mock_exists: MagicMock,
         mock_join: MagicMock,
@@ -160,9 +207,10 @@ class TestBuildScript(unittest.TestCase):
         with self.assertRaises(SysExitCalled):
             build.load_image_configs(["search/path"])
         self.mock_sys_exit.assert_called_once_with(1)
-        mock_print.assert_any_call(
-            "Error: Could not decode search/path/deps.json: "
-            "Expecting value: line 1 column 1 (char 0)"
+        mock_log_error.assert_called_once_with(
+            "Could not decode %s: %s",
+            "search/path/deps.json",
+            unittest.mock.ANY,
         )
 
     @patch("builtins.open", new_callable=mock_open, read_data=b"dockerfile content")
@@ -186,9 +234,9 @@ class TestBuildScript(unittest.TestCase):
         self.assertEqual(tag, "devkit/image-name:amd64-12345")
 
     @patch("subprocess.run")
-    @patch("builtins.print")
+    @patch("logging.info")
     def test_manage_docker_image_exists_locally(
-        self, mock_print: MagicMock, mock_run: MagicMock
+        self, mock_log_info: MagicMock, mock_run: MagicMock
     ) -> None:
         """Test manage_docker_image when image exists locally."""
         mock_run.return_value = MagicMock(returncode=0)
@@ -199,12 +247,15 @@ class TestBuildScript(unittest.TestCase):
             text=True,
             check=False,
         )
-        mock_print.assert_any_call(
-            "Image tag already exists locally. Skipping build/pull."
+        mock_log_info.assert_any_call(
+            "Image %s already exists locally. Skipping build/pull.", "tag"
         )
 
+    @patch("builtins.print")
     @patch("subprocess.run")
-    def test_manage_docker_image_exists_remotely(self, mock_run: MagicMock) -> None:
+    def test_manage_docker_image_exists_remotely(
+        self, mock_run: MagicMock, mock_print: MagicMock
+    ) -> None:
         """Test manage_docker_image when image exists remotely."""
         mock_run.side_effect = [
             MagicMock(returncode=1),
@@ -213,10 +264,16 @@ class TestBuildScript(unittest.TestCase):
         ]
         build.manage_docker_image("tag", "Dockerfile", [], "context")
         self.assertEqual(mock_run.call_count, 3)
+        expected_calls = [
+            call("Pulling image: tag...", file=sys.stderr, end="", flush=True),
+            call(" [OK]", file=sys.stderr),
+        ]
+        mock_print.assert_has_calls(expected_calls)
 
+    @patch("builtins.print")
     @patch("subprocess.run")
     def test_manage_docker_image_build_and_push_success(
-        self, mock_run: MagicMock
+        self, mock_run: MagicMock, mock_print: MagicMock
     ) -> None:
         """Test manage_docker_image builds and pushes successfully."""
         mock_run.side_effect = [
@@ -227,11 +284,19 @@ class TestBuildScript(unittest.TestCase):
         ]
         build.manage_docker_image("tag", "Dockerfile", ["ARG", "val"], "context")
         self.assertEqual(mock_run.call_count, 4)
+        expected_calls = [
+            call("Building image: tag...", file=sys.stderr, end="", flush=True),
+            call(" [OK]", file=sys.stderr),
+            call("Pushing image: tag...", file=sys.stderr, end="", flush=True),
+            call(" [OK]", file=sys.stderr),
+        ]
+        mock_print.assert_has_calls(expected_calls)
 
-    @patch("subprocess.run")
     @patch("builtins.print")
+    @patch("subprocess.run")
+    @patch("logging.warning")
     def test_manage_docker_image_build_and_push_fail(
-        self, mock_print: MagicMock, mock_run: MagicMock
+        self, mock_log_warning: MagicMock, mock_run: MagicMock, mock_print: MagicMock
     ) -> None:
         """Test manage_docker_image builds and push fails."""
         mock_run.side_effect = [
@@ -242,13 +307,21 @@ class TestBuildScript(unittest.TestCase):
         ]
         build.manage_docker_image("tag", "Dockerfile", [], "context")
         self.assertEqual(mock_run.call_count, 4)
-        mock_print.assert_any_call(
-            "Warning: Failed to push image tag. Continuing with local image."
+        mock_log_warning.assert_any_call(
+            "Failed to push image %s. Continuing with local image.", "tag"
         )
+        expected_calls = [
+            call("Building image: tag...", file=sys.stderr, end="", flush=True),
+            call(" [OK]", file=sys.stderr),
+            call("Pushing image: tag...", file=sys.stderr, end="", flush=True),
+            call(" [FAILED]", file=sys.stderr),
+        ]
+        mock_print.assert_has_calls(expected_calls)
 
+    @patch("builtins.print")
     @patch("subprocess.run")
     def test_manage_docker_image_called_process_error(
-        self, mock_run: MagicMock
+        self, mock_run: MagicMock, mock_print: MagicMock
     ) -> None:
         """Test manage_docker_image with CalledProcessError."""
         error = subprocess.CalledProcessError(1, "cmd")
@@ -258,6 +331,7 @@ class TestBuildScript(unittest.TestCase):
         with self.assertRaises(SysExitCalled):
             build.manage_docker_image("tag", "Dockerfile", [], "context")
         self.mock_sys_exit.assert_called_once_with(1)
+        mock_print.assert_called_once_with(" [FAILED]", file=sys.stderr)
 
     @patch("subprocess.run", side_effect=subprocess.CalledProcessError(0, "cmd"))
     def test_manage_docker_image_called_process_error_zero_exit(

@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.1.0 (2025-09-19)
+
+
+### Dependencies
+
+* **deps:** Update Gemini CLI to 0.5.0-preview.1
+* **deps:** Update Gemini CLI to 0.5.4
+* **deps:** Update used Bazel to 8.4.1
+
+
+### GitHub
+
+* **github:** Add GitHub section to version config and changelog
+
+
+### Features
+
+* Add coverage test command
+* Add DEVKIT_DOCKER_RUN_ARGS env var support
+* Add get-architecture tool
+* Add missing branch coverage info
+* Add progress prints in docker build
+* Add support for zip/unzip in the build-env
+* Add variable expansion to docker run args
+* added jinja2 template for bep tool
+* added jinja2 template for bootstrap tool
+* added jinja2 template for build tool
+* added jinja2 template for checksums tool
+* added jinja2 template for dev tool
+* added jinja2 template for test tool
+* added jinja2 template for vscode_ide tool
+* Allow devkit/* execution from subdirectories
+* Forward standrd input to devkit commands
+* Include status into the progress of docker build
+* Replace prints by logs in docker build
+* Simplify and test the get-architecture tool
+* Standardize and control get-architecture output
+
+
+### Bug Fixes
+
+* Capture only stdout in build_docs
+* Docker run args from devkit.json
+* Find external mounts from project root
+* Invert logic in coverage check
+
 ## 1.0.0 (2025-09-11)
 
 

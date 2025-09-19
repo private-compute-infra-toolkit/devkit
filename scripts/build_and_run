@@ -26,13 +26,13 @@ readonly IMAGES="${SCRIPTS}/../images"
 declare -r IMAGE_NAME="$1"
 shift
 
-BUILD_CMD="${SCRIPTS}/docker/build.py ${IMAGE_NAME} --print-tag --search-path ${IMAGES}"
+BUILD_CMD="${SCRIPTS}/docker/build.py ${IMAGE_NAME} --print-tag --search-path ${IMAGES} --log-file ${DEVKIT_LOG_FILE}"
 readonly BUILD_CMD
 
-BUILD_OUTPUT="$(${BUILD_CMD})" || { echo "${BUILD_OUTPUT}"; exit 1; }
-readonly BUILD_OUTPUT
-
-IMAGE_URI="$(echo "${BUILD_OUTPUT}" | tail -n 1)"
+IMAGE_URI="$(${BUILD_CMD})" || {
+  echo "Build failed. See logs for details: ${DEVKIT_LOG_FILE}" >&2
+  exit 1
+}
 readonly IMAGE_URI
 
 "${SCRIPTS}/docker_run" "${IMAGE_URI}" "$@"

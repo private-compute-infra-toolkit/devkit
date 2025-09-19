@@ -16,7 +16,9 @@ Tests for list_external_mounts.
 """
 import tempfile
 import unittest
+from io import StringIO
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from scripts import list_external_mounts
 
@@ -310,6 +312,43 @@ class ListExternalMountsTest(unittest.TestCase):
         result = list_external_mounts.list_external_mounts(self.scan_dir)
 
         self.assertEqual(result, {external_dir2.resolve()})
+
+
+class ListExternalMountsMainTest(unittest.TestCase):
+    """
+    Tests for the main function in list_external_mounts.
+    """
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("pathlib.Path.cwd")
+    @patch("scripts.list_external_mounts.list_external_mounts")
+    def test_main_with_default_cwd(
+        self, mock_list_mounts: MagicMock, mock_cwd: MagicMock, mock_stdout: MagicMock
+    ) -> None:
+        """Test main uses current working directory by default."""
+        mock_cwd.return_value = Path("/default/path")
+        mock_list_mounts.return_value = {Path("/a/b"), Path("/c/d")}
+
+        with patch("sys.argv", ["list_external_mounts.py"]):
+            list_external_mounts.main()
+
+        mock_list_mounts.assert_called_once_with(Path("/default/path"))
+        self.assertEqual(sorted(mock_stdout.getvalue().splitlines()), ["/a/b", "/c/d"])
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("scripts.list_external_mounts.list_external_mounts")
+    def test_main_with_custom_dir(
+        self, mock_list_mounts: MagicMock, mock_stdout: MagicMock
+    ) -> None:
+        """Test main uses the directory provided in the command line."""
+        mock_list_mounts.return_value = {Path("/e/f")}
+        custom_dir = "/custom/dir"
+
+        with patch("sys.argv", ["list_external_mounts.py", custom_dir]):
+            list_external_mounts.main()
+
+        mock_list_mounts.assert_called_once_with(Path(custom_dir))
+        self.assertEqual(sorted(mock_stdout.getvalue().splitlines()), ["/e/f"])
 
 
 if __name__ == "__main__":  # pragma: no cover

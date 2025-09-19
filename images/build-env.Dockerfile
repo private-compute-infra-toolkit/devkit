@@ -48,7 +48,7 @@ RUN export GOBIN=/usr/local/bin \
 
 # Workarounds to install license_review deps before customization is added
 # TODO: Move to customized license_review container
-RUN apt-get update && apt-get install -y --no-install-recommends jq moreutils maven libxml2-utils gh
+RUN apt-get update && apt-get install -y --no-install-recommends jq moreutils maven libxml2-utils gh zip unzip
 
 ADD https://github.com/bazelbuild/buildtools/releases/download/${BUILDIFIER_VERSION}/buildifier-linux-amd64 /usr/bin/buildifier
 RUN chmod +x /usr/bin/buildifier

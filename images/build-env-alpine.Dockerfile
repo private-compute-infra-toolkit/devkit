@@ -40,4 +40,4 @@ RUN addgroup sudo \
 
 RUN apk update && apk add ca-certificates git python3 gcompat
 
-RUN apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing bazel8=8.3.1-r0
+RUN apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing bazel8=8.4.1-r0

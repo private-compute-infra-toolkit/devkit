@@ -1,0 +1,59 @@
+#!/bin/bash
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Print the CPU architecture
+
+set -o errexit
+set -o nounset
+
+# emit any of the following values
+readonly ARCH_AMD64=amd64
+readonly ARCH_AARCH64=arm64
+
+function usage() {
+  declare -r -i exitval=${1-1}
+  cat <<USAGE
+usage: $(basename "${BASH_SOURCE[0]}") [OPTION]...
+
+  Return the CPU architecture (e.g.: ${ARCH_AMD64} or ${ARCH_AARCH64}).
+
+  Options:
+    -h, --help                Show this help message and exit.
+USAGE
+  exit ${exitval}
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h | --help) usage 0 ;;
+    *) printf "Error: unrecognized arg: %s\n" "$1"; usage 1 ;;
+  esac
+done
+
+
+ARCH="$(docker info --format="{{.Architecture}}")"
+readonly ARCH
+
+if [[ ${ARCH} == amd64 ]] || [[ ${ARCH} == x86_64 ]]; then
+  printf "%s\n" "${ARCH_AMD64}"
+  exit 0
+fi
+if [[ ${ARCH} == arm64 ]] || [[ ${ARCH} == aarch64 ]]; then
+  printf "%s\n" "${ARCH_AARCH64}"
+  exit 0
+fi
+
+printf "Unsupported architecture: %s\n" "${ARCH}" >/dev/stderr
+exit 1

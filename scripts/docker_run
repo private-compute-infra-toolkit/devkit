@@ -21,6 +21,9 @@ readonly SCRIPTS
 
 source "${SCRIPTS}/lib_logging.sh"
 
+PROJECT_ROOT="$("${SCRIPTS}"/find_project_root)"
+readonly PROJECT_ROOT
+
 declare -r DEVKIT_HOME="${HOME}/.devkit"
 declare -r BAZELISK_CACHE_HOME="${HOME}/.cache/bazelisk"
 declare -r BAZEL_CACHE_HOME="${HOME}/.cache/bazel"
@@ -76,7 +79,7 @@ declare -a ADDITIONAL_MOUNTS=()
 
 while IFS= read -r path; do
   ADDITIONAL_MOUNTS+=("--volume=${path}:${path}")
-done < <("${SCRIPTS}/list_external_mounts.py")
+done < <("${SCRIPTS}/list_external_mounts.py" "${PROJECT_ROOT}")
 
 if git rev-parse --is-inside-work-tree &>/dev/null; then
   GIT_DIR="$(git rev-parse --absolute-git-dir)"
@@ -94,12 +97,18 @@ if [[ -t 0 ]] && [[ -t 1 ]]; then
     "--interactive"
     "--tty"
   )
+elif [[ ! -t 0 ]]; then
+  DOCKER_RUN_ARGS+=("--interactive")
 fi
 
-mapfile -t DOCKER_RUN_ARGS_FROM_JSON < <(python3 - <<'EOF'
+mapfile -t DOCKER_RUN_ARGS_FROM_JSON < <(
+  export PROJECT_ROOT
+  python3 - <<'EOF'
 import json
+import os
 try:
-    with open("devkit.json") as f:
+    devkit_json_path = os.path.join(os.environ["PROJECT_ROOT"], "devkit.json")
+    with open(devkit_json_path) as f:
         data = json.load(f)
         args = data["docker"]["run"]
         if args:
@@ -111,9 +120,20 @@ EOF
 
 DOCKER_RUN_ARGS+=("${DOCKER_RUN_ARGS_FROM_JSON[@]}")
 
+if [[ -n "${DEVKIT_DOCKER_RUN_ARGS:-}" ]]; then
+  read -r -a devkit_docker_run_args <<<"${DEVKIT_DOCKER_RUN_ARGS}"
+  DOCKER_RUN_ARGS+=("${devkit_docker_run_args[@]}")
+fi
+
+declare -a EVALUATED_DOCKER_RUN_ARGS=()
+for arg in "${DOCKER_RUN_ARGS[@]}"; do
+  eval "expanded_arg=${arg}"
+  EVALUATED_DOCKER_RUN_ARGS+=("${expanded_arg}")
+done
+
 docker run \
     --rm \
-    --volume="${PWD}:${PWD}" \
+    --volume="${PROJECT_ROOT}:${PROJECT_ROOT}" \
     --workdir="${PWD}" \
     --env="HOME" \
     --env="GEMINI_API_KEY" \
@@ -152,5 +172,5 @@ docker run \
     --hostname="$(hostname)" \
     --volume="/tmp:/tmp" \
     --entrypoint="${SCRIPTS}/entrypoint_docker" \
-    "${DOCKER_RUN_ARGS[@]}" \
+    "${EVALUATED_DOCKER_RUN_ARGS[@]}" \
     "$@"
