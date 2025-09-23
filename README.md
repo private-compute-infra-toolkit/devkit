@@ -22,7 +22,7 @@ To start a new project using a DevKit template, follow these steps:
     For proper setup, add DevKit as a submodule:
 
     ```bash
-    git submodule add sso://privacysandbox/hit/devkit .devkit
+    git submodule add git@github.com:private-compute-infra-toolkit/devkit.git .devkit
     ln -s .devkit/devkit devkit
     echo ".devkit" >> .bazelignore
     ```
