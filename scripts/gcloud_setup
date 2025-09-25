@@ -1,0 +1,151 @@
+#!/bin/bash
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#
+# Sets up gcloud for usage with devkit.
+#
+
+set -o errexit
+set -o nounset
+
+function usage() {
+  local -i exitval=${1-1}
+  cat &>/dev/stdout << USAGE
+usage: $(basename "${BASH_SOURCE[0]}") [--help] [--account ACCOUNT]
+
+Sets up gcloud for usage with devkit.
+
+Options:
+  --help                Show this help message and exit.
+  --account             The gcloud account to use. Defaults to '${USER}@google.com'.
+USAGE
+  exit ${exitval}
+}
+
+function log_sep() {
+  printf "%.s=" {1..20}
+  echo
+  if [[ $# -gt 0 ]]; then
+    echo "$@"
+  fi
+}
+
+function get_config_value() {
+  local -r key="$1"
+  local -r config_path="$2"
+  local value
+
+  value="$(jq -r "${key}" "${config_path}")"
+
+  if [[ -z "${value}" || "${value}" == "null" ]]; then
+    echo "Error: Could not find '${key}' key in ${config_path}" >&2
+    exit 1
+  fi
+
+  echo "${value}"
+}
+
+ACCOUNT="${USER}@google.com"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --help) usage 0 ;;
+    --account)
+      shift
+      if [[ $# -eq 0 ]]; then
+        echo "Error: --account requires an argument." >&2
+        usage 1
+      fi
+      ACCOUNT=$1
+      ;;
+    *) break ;;
+  esac
+  shift
+done
+
+if [[ ! -f /.dockerenv ]]; then
+  echo "Error: This script must be run inside a Docker container."
+  exit 1
+fi
+
+for cmd in gcloud jq; do
+  if ! command -v "${cmd}" &> /dev/null; then
+    echo "Error: Required command '${cmd}' is not installed." >&2
+    exit 1
+  fi
+done
+
+SCRIPTS="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
+PROJECT_ROOT="$("${SCRIPTS}"/find_project_root)"
+DEVKIT_CONFIG_PATH="${PROJECT_ROOT}/devkit.json"
+DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_PROJECT=".docker.registry.project"
+DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_HOST=".docker.registry.host"
+
+readonly SCRIPTS
+readonly PROJECT_ROOT
+readonly DEVKIT_CONFIG_PATH
+readonly DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_PROJECT
+readonly DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_HOST
+
+if [[ ! -f "${DEVKIT_CONFIG_PATH}" ]]; then
+  echo "Error: Devkit config file not found at ${DEVKIT_CONFIG_PATH}" >&2
+  exit 1
+fi
+
+PROJECT="$(get_config_value "${DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_PROJECT}" "${DEVKIT_CONFIG_PATH}")"
+readonly PROJECT
+
+log_sep "Configuring gcloud account..."
+CURRENT_ACCOUNT=$(gcloud config get-value account 2>/dev/null || true)
+readonly CURRENT_ACCOUNT
+if [[ "${CURRENT_ACCOUNT}" != "${ACCOUNT}" ]]; then
+  gcloud config set account "${ACCOUNT}" --quiet
+  echo "Account is now set to ${ACCOUNT}."
+else
+  echo "Gcloud account is already set to ${ACCOUNT}."
+fi
+
+log_sep "Configuring gcloud project..."
+CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null || true)
+readonly CURRENT_PROJECT
+if [[ "${CURRENT_PROJECT}" != "${PROJECT}" ]]; then
+  gcloud config set project "${PROJECT}" --quiet
+  echo "Project is now set to ${PROJECT}."
+else
+  echo "Project is already set to ${PROJECT}."
+fi
+
+log_sep "Checking authentication..."
+if ! gcloud auth print-access-token --account="${ACCOUNT}" &> /dev/null; then
+  echo "Logging into gcloud as ${ACCOUNT}..."
+  gcloud auth login "${ACCOUNT}" --quiet
+else
+  echo "Already logged in as ${ACCOUNT}."
+fi
+
+log_sep "Checking application-default credentials..."
+if ! gcloud auth application-default print-access-token --account="${ACCOUNT}" &> /dev/null; then
+  echo "Setting application-default credentials..."
+  gcloud auth application-default login --quiet
+else
+  echo "Application-default credentials already set."
+fi
+
+log_sep "Configuring Docker credentials..."
+DOCKER_REGISTRY_HOST="$(get_config_value "${DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_HOST}" "${DEVKIT_CONFIG_PATH}")"
+readonly DOCKER_REGISTRY_HOST
+gcloud auth configure-docker "${DOCKER_REGISTRY_HOST}" --quiet
+
+log_sep "Done."

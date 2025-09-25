@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.3.0 (2025-09-25)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.6.0
+
+
+### Features
+
+* Add --templates-root option to devkit/bootstrap
+* Add gcloud setup scripts
+* Add scorecard label to readme
+
+
+### Bug Fixes
+
+* Correct git submodule url
+* Move docs generation to tools/ci/utils/build_docs
+
+
+### Documentation
+
+* Simplify bootstrap text
+
 ## 1.2.0 (2025-09-23)
 
 

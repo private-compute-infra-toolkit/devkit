@@ -202,6 +202,42 @@ class TestBootstrapScript(unittest.TestCase):
         )
         mock_sys_exit.assert_called_once_with(1)
 
+    @patch("bootstrap.copy_and_template")
+    @patch("os.getcwd")
+    @patch("sys.exit")
+    @patch("builtins.print")
+    def test_main_with_templates_root(
+        self,
+        mock_print: MagicMock,
+        mock_sys_exit: MagicMock,
+        mock_getcwd: MagicMock,
+        mock_copy_and_template: MagicMock,
+    ) -> None:
+        """Tests the successful execution with a custom templates root."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            templates_root = Path(tmpdir)
+            (templates_root / "cpp").mkdir()
+            sys.argv = [
+                "bootstrap.py",
+                "--template",
+                "cpp",
+                "--templates-root",
+                str(templates_root),
+            ]
+            mock_getcwd.return_value = "/path/to/dest"
+            mock_copy_and_template.return_value = False  # No errors
+
+            bootstrap.main()
+
+            expected_template_dir = (templates_root / "cpp").resolve(strict=True)
+            mock_copy_and_template.assert_called_once_with(
+                expected_template_dir, Path("/path/to/dest"), {}
+            )
+            mock_print.assert_called_once_with(
+                "Project bootstrapped with 'cpp' template."
+            )
+            mock_sys_exit.assert_not_called()
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

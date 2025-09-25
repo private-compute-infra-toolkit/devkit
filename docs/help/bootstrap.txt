@@ -1,8 +1,11 @@
-usage: bootstrap.py [-h] --template TEMPLATE [--args [ARGS ...]]
+usage: bootstrap.py [-h] --template TEMPLATE [--templates-root TEMPLATES_ROOT]
+                    [--args [ARGS ...]]
 
 Bootstraps the development environment.
 
 options:
-  -h, --help           show this help message and exit
-  --template TEMPLATE  The name of the template to use.
-  --args [ARGS ...]    A list of key=value pairs for templating.
+  -h, --help            show this help message and exit
+  --template TEMPLATE   The name of the template to use.
+  --templates-root TEMPLATES_ROOT
+                        The root directory for templates lookup.
+  --args [ARGS ...]     A list of key=value pairs for templating.

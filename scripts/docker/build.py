@@ -52,7 +52,16 @@ def load_config(config_path: str) -> None:
             try:
                 config = json.load(f)
                 if "docker" in config and "registry" in config["docker"]:
-                    REPO = config["docker"]["registry"]
+                    registry = config["docker"]["registry"]
+                    if (
+                        "host" in registry
+                        and "project" in registry
+                        and "repository" in registry
+                    ):
+                        REPO = (
+                            f"{registry['host']}/{registry['project']}/"
+                            f"{registry['repository']}"
+                        )
             except json.JSONDecodeError as e:
                 logging.error("Could not decode %s: %s", config_path, e)
                 sys.exit(1)

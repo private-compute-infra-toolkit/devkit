@@ -97,14 +97,15 @@ class TestBuildScript(unittest.TestCase):
     @patch(
         "builtins.open",
         new_callable=mock_open,
-        read_data='{"docker": {"registry": "my-repo"}}',
+        read_data='{"docker": {"registry": '
+        '{"host": "my-host", "project": "my-project", "repository": "my-repo"}}}',
     )
     def test_load_config_success(
         self, unused_mock_file: MagicMock, mock_exists: MagicMock
     ) -> None:
         """Test load_config successfully loads registry."""
         build.load_config("dummy/path/devkit.json")
-        self.assertEqual(build.REPO, "my-repo")
+        self.assertEqual(build.REPO, "my-host/my-project/my-repo")
         mock_exists.assert_called_once_with("dummy/path/devkit.json")
 
     @patch("os.path.exists", return_value=False)
@@ -120,6 +121,48 @@ class TestBuildScript(unittest.TestCase):
         self, unused_mock_file: MagicMock, unused_mock_exists: MagicMock
     ) -> None:
         """Test load_config with no registry key."""
+        build.load_config("dummy/path/devkit.json")
+        self.assertEqual(build.REPO, "")
+
+    @patch("os.path.exists", return_value=True)
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data='{"docker": {"registry": '
+        '{"project": "my-project", "repository": "my-repo"}}}',
+    )
+    def test_load_config_no_host(
+        self, unused_mock_file: MagicMock, unused_mock_exists: MagicMock
+    ) -> None:
+        """Test load_config with a registry object missing the host."""
+        build.load_config("dummy/path/devkit.json")
+        self.assertEqual(build.REPO, "")
+
+    @patch("os.path.exists", return_value=True)
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data='{"docker": {"registry": '
+        '{"host": "my-host", "repository": "my-repo"}}}',
+    )
+    def test_load_config_no_project(
+        self, unused_mock_file: MagicMock, unused_mock_exists: MagicMock
+    ) -> None:
+        """Test load_config with a registry object missing the project."""
+        build.load_config("dummy/path/devkit.json")
+        self.assertEqual(build.REPO, "")
+
+    @patch("os.path.exists", return_value=True)
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data='{"docker": {"registry": '
+        '{"host": "my-host", "project": "my-project"}}}',
+    )
+    def test_load_config_no_repository(
+        self, unused_mock_file: MagicMock, unused_mock_exists: MagicMock
+    ) -> None:
+        """Test load_config with a registry object missing the repository."""
         build.load_config("dummy/path/devkit.json")
         self.assertEqual(build.REPO, "")
 

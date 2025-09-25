@@ -1,5 +1,9 @@
 {
   "docker": {
-    "registry": ""
+    "registry": {
+        "host": "",
+        "project": "",
+        "repository": ""
+    }
   }
 }

@@ -1,5 +1,7 @@
 # DevKit
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/private-compute-infra-toolkit/devkit/badge)](https://scorecard.dev/viewer/?uri=github.com/private-compute-infra-toolkit/devkit)
+
 ## Bootstrapping a new project
 
 To start a new project using a DevKit template, follow these steps:
@@ -22,9 +24,9 @@ To start a new project using a DevKit template, follow these steps:
     For proper setup, add DevKit as a submodule:
 
     ```bash
-    git submodule add sso://privacysandbox/hit/devkit .devkit
+    git submodule add --name=devkit --branch=main https://github.com/private-compute-infra-toolkit/devkit.git .devkit
     ln -s .devkit/devkit devkit
-    echo ".devkit" >> .bazelignore
+    printf "\n.devkit\n" >>.bazelignore
     ```
 
 3.  Run the bootstrap script with your desired template:

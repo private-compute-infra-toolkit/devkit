@@ -50,7 +50,7 @@ def copy_and_template(
                 with src_file_path.open("r", encoding="utf-8") as f:
                     content = f.read()
                     env = jinja2.Environment(
-                        loader=jinja2.FileSystemLoader(src_path),
+                        loader=jinja2.FileSystemLoader(src_dir),
                         undefined=jinja2.StrictUndefined,
                     )
                     template = env.from_string(content)
@@ -86,6 +86,9 @@ def main() -> None:
         help="The name of the template to use.",
     )
     parser.add_argument(
+        "--templates-root", help="The root directory for templates lookup.", type=Path
+    )
+    parser.add_argument(
         "--args",
         nargs="*",
         help="A list of key=value pairs for templating.",
@@ -103,8 +106,12 @@ def main() -> None:
         context[key] = value
 
     dest_dir = Path(os.getcwd())
-    script_dir = Path(__file__).parent
-    template_dir = (script_dir.parent / "templates" / template).resolve()
+    if args.templates_root:
+        templates_root_dir = args.templates_root
+    else:
+        script_dir = Path(__file__).parent
+        templates_root_dir = script_dir.parent / "templates"
+    template_dir = (templates_root_dir / template).resolve()
 
     try:
         template_dir = template_dir.resolve(strict=True)
