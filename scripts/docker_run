@@ -75,21 +75,46 @@ declare -r NOBODY_GROUP="nobody"
 declare -i NOBODY_GROUP_ID
 NOBODY_GROUP_ID=$(getent group "${NOBODY_GROUP}" | cut -d: -f3)
 
-declare -a ADDITIONAL_MOUNTS=()
-
-while IFS= read -r path; do
-  ADDITIONAL_MOUNTS+=("--volume=${path}:${path}")
-done < <("${SCRIPTS}/list_external_mounts.py" "${PROJECT_ROOT}")
+declare -a MOUNTS=(
+  "${DEVKIT_HOME}"
+  "${BAZELISK_CACHE_HOME}"
+  "${BAZEL_CACHE_HOME}"
+  "${DOCKER_HOME}"
+  "${GCLOUD_CONFIG_HOME}"
+  "${GEMINI_HOME}"
+  "${PRE_COMMIT_CACHE_HOME}"
+  "${PRE_COMMIT_LOCAL_HOME}"
+  "${NVIM_SHARE_LOCAL_HOME}"
+  "${NVIM_CACHE_HOME}"
+  "${GO_BUILD_CACHE_HOME}"
+  "${PYLINT_CACHE_HOME}"
+  "${NPM_HOME}"
+  "${BUF_CACHE_HOME}"
+  "${STATE_LOCAL_HOME}"
+  "${PIP_TOOLS_CACHE}"
+  "${PIP_CACHE}"
+  "${MATPLOTLIB_CONFIG}"
+  "${DOCKER_SOCKET}"
+  "${GIT_CONFIG}"
+)
 
 if git rev-parse --is-inside-work-tree &>/dev/null; then
   GIT_DIR="$(git rev-parse --absolute-git-dir)"
   readonly GIT_DIR
   if [[ "${GIT_DIR}" != "${PWD}"* ]]; then
-    ADDITIONAL_MOUNTS+=("--volume=${GIT_DIR}:${GIT_DIR}")
+    MOUNTS+=("${GIT_DIR}")
   fi
 fi
 
 declare -a ADDITIONAL_ENV=()
+
+declare -a LIST_EXTERNAL_MOUNTS_ARGS=()
+LIST_EXTERNAL_MOUNTS_ARGS+=(--root-dir "${PROJECT_ROOT}")
+for path in "${MOUNTS[@]}"; do
+  LIST_EXTERNAL_MOUNTS_ARGS+=(--mount "${path}")
+done
+
+mapfile -t MOUNTS < <("${SCRIPTS}/list_external_mounts.py" "${LIST_EXTERNAL_MOUNTS_ARGS[@]}")
 
 declare -a DOCKER_RUN_ARGS=()
 if [[ -t 0 ]] && [[ -t 1 ]]; then
@@ -131,6 +156,11 @@ for arg in "${DOCKER_RUN_ARGS[@]}"; do
   EVALUATED_DOCKER_RUN_ARGS+=("${expanded_arg}")
 done
 
+declare -a DOCKER_MOUNTS=()
+for path in "${MOUNTS[@]}"; do
+  DOCKER_MOUNTS+=("--volume=${path}:${path}")
+done
+
 docker run \
     --rm \
     --volume="${PROJECT_ROOT}:${PROJECT_ROOT}" \
@@ -147,27 +177,7 @@ docker run \
     --env="NOBODY_GROUP=${NOBODY_GROUP}" \
     --env="NOBODY_GROUP_ID=${NOBODY_GROUP_ID}" \
     "${ADDITIONAL_ENV[@]}" \
-    --volume="${DEVKIT_HOME}:${DEVKIT_HOME}" \
-    --volume="${BAZELISK_CACHE_HOME}:${BAZELISK_CACHE_HOME}" \
-    --volume="${BAZEL_CACHE_HOME}:${BAZEL_CACHE_HOME}" \
-    --volume="${DOCKER_SOCKET}:${DOCKER_SOCKET}" \
-    --volume="${DOCKER_HOME}:${DOCKER_HOME}" \
-    --volume="${GCLOUD_CONFIG_HOME}:${GCLOUD_CONFIG_HOME}" \
-    --volume="${GIT_CONFIG}:${GIT_CONFIG}" \
-    --volume="${GEMINI_HOME}:${GEMINI_HOME}" \
-    --volume="${PRE_COMMIT_CACHE_HOME}:${PRE_COMMIT_CACHE_HOME}" \
-    --volume="${PRE_COMMIT_LOCAL_HOME}:${PRE_COMMIT_LOCAL_HOME}" \
-    --volume="${NVIM_SHARE_LOCAL_HOME}:${NVIM_SHARE_LOCAL_HOME}" \
-    --volume="${NVIM_CACHE_HOME}:${NVIM_CACHE_HOME}" \
-    --volume="${GO_BUILD_CACHE_HOME}:${GO_BUILD_CACHE_HOME}" \
-    --volume="${PYLINT_CACHE_HOME}:${PYLINT_CACHE_HOME}" \
-    --volume="${NPM_HOME}:${NPM_HOME}" \
-    --volume="${BUF_CACHE_HOME}:${BUF_CACHE_HOME}" \
-    --volume="${STATE_LOCAL_HOME}:${STATE_LOCAL_HOME}" \
-    --volume="${PIP_TOOLS_CACHE}:${PIP_TOOLS_CACHE}" \
-    --volume="${PIP_CACHE}:${PIP_CACHE}" \
-    --volume="${MATPLOTLIB_CONFIG}:${MATPLOTLIB_CONFIG}" \
-    "${ADDITIONAL_MOUNTS[@]}" \
+    "${DOCKER_MOUNTS[@]}" \
     --net=host \
     --hostname="$(hostname)" \
     --volume="/tmp:/tmp" \

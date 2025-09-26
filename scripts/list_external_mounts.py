@@ -25,7 +25,7 @@ import argparse
 
 def list_external_mounts(scan_dir: Path) -> set[Path]:
     """
-    Scans a directory for symlinks and returns a minimal set of external paths
+    Scans a directory for symlinks and returns a set of external paths
     they point to, including intermediate external symlinks.
     """
     scan_dir_abs = scan_dir.resolve()
@@ -54,7 +54,7 @@ def list_external_mounts(scan_dir: Path) -> set[Path]:
                         continue
                     _process_symlink(path, scan_dir_abs, external_paths, worklist)
 
-    return _minimize_paths(external_paths)
+    return external_paths
 
 
 def _process_symlink(
@@ -124,6 +124,24 @@ def _minimize_paths(paths: set[Path]) -> set[Path]:
     return minimal_paths
 
 
+def get_minimal_mounts(root_dir: Path, existing_mounts: list[Path]) -> set[Path]:
+    """
+    Gathers all external mounts and minimizes them.
+
+    Args:
+        root_dir: The root directory to scan for symlinks.
+        existing_mounts: A list of existing mount paths to consider.
+
+    Returns:
+        A minimal set of external mount paths.
+    """
+
+    symlink_paths = list_external_mounts(root_dir)
+    existing_paths = {p.resolve() for p in existing_mounts}
+    all_paths = symlink_paths.union(existing_paths)
+    return _minimize_paths(all_paths)
+
+
 def main() -> None:
     """
     Parses command-line arguments and lists external mounts.
@@ -133,15 +151,23 @@ def main() -> None:
         "including intermediate symlinks."
     )
     parser.add_argument(
-        "root_dir",
-        nargs="?",
+        "--root-dir",
         default=Path.cwd(),
         help="The root directory to start the search from. "
         "Defaults to the current directory.",
         type=Path,
     )
+    parser.add_argument(
+        "--mount",
+        dest="existing_mounts",
+        action="append",
+        help="An existing mount path to consider for minimization.",
+        type=Path,
+        default=[],
+    )
     args = parser.parse_args()
-    for p in list_external_mounts(args.root_dir):
+
+    for p in get_minimal_mounts(args.root_dir, args.existing_mounts):
         print(p)
 
 

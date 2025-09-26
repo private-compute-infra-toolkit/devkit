@@ -48,7 +48,7 @@ class ListExternalMountsTest(unittest.TestCase):
     def test_symlink_to_external_dir(self) -> None:
         """Test symlink to an external directory is detected."""
         (self.scan_dir / "link_to_external_dir").symlink_to(self.external_dir)
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, {self.external_dir.resolve()})
 
     def test_symlink_to_external_file(self) -> None:
@@ -56,14 +56,14 @@ class ListExternalMountsTest(unittest.TestCase):
         external_file = self.external_dir / "file.txt"
         external_file.touch()
         (self.scan_dir / "link_to_external_file").symlink_to(external_file)
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, {external_file.resolve()})
 
     def test_nested_symlink(self) -> None:
         """Test a symlink pointing to another symlink is resolved."""
         (self.scan_dir / "link1").symlink_to(self.scan_dir / "link2")
         (self.scan_dir / "link2").symlink_to(self.external_dir)
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, {self.external_dir.resolve()})
 
     def test_symlink_to_parent_of_already_reported_path(self) -> None:
@@ -72,14 +72,14 @@ class ListExternalMountsTest(unittest.TestCase):
         external_child_dir.mkdir()
         (self.scan_dir / "link_to_child").symlink_to(external_child_dir)
         (self.scan_dir / "link_to_parent").symlink_to(self.external_dir)
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, {self.external_dir.resolve()})
 
     def test_cyclical_symlink(self) -> None:
         """Test that cyclical symlinks do not cause an infinite loop."""
         (self.scan_dir / "cycle1").symlink_to(self.scan_dir / "cycle2")
         (self.scan_dir / "cycle2").symlink_to(self.scan_dir / "cycle1")
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, set())
 
     def test_internal_symlink(self) -> None:
@@ -87,13 +87,13 @@ class ListExternalMountsTest(unittest.TestCase):
         internal_dir = self.scan_dir / "internal"
         internal_dir.mkdir()
         (self.scan_dir / "link_to_internal").symlink_to(internal_dir)
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, set())
 
     def test_broken_symlink(self) -> None:
         """Test that broken symlinks are ignored."""
         (self.scan_dir / "broken_link").symlink_to("non_existent_path")
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, set())
 
     def test_symlink_in_subdirectory(self) -> None:
@@ -103,7 +103,7 @@ class ListExternalMountsTest(unittest.TestCase):
         external_dir2 = self.test_dir / "external2"
         external_dir2.mkdir()
         (sub_scan_dir / "link_in_subdir").symlink_to(external_dir2)
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, {external_dir2.resolve()})
 
     def test_symlink_to_file_in_external_dir(self) -> None:
@@ -112,7 +112,7 @@ class ListExternalMountsTest(unittest.TestCase):
         external_file = self.external_dir / "another_file.txt"
         external_file.touch()
         (self.scan_dir / "link_to_file_in_external_dir").symlink_to(external_file)
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, {self.external_dir.resolve()})
 
     def test_multiple_links_to_same_external_dir(self) -> None:
@@ -133,26 +133,26 @@ class ListExternalMountsTest(unittest.TestCase):
         (sub_scan_dir2 / "link_to_child_dir").symlink_to(external_child_dir)
         (sub_scan_dir3 / "link_to_child_file").symlink_to(external_child_file)
 
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, {self.external_dir.resolve()})
 
     def test_symlink_to_scan_dir_itself(self) -> None:
         """Test that a symlink to the scan directory itself is ignored."""
         (self.scan_dir / "link_to_self").symlink_to(self.scan_dir)
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, set())
 
     def test_self_referencing_symlink(self) -> None:
         """Test that a self-referencing symlink is handled."""
         link_path = self.scan_dir / "self_link"
         link_path.symlink_to(link_path)
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, set())
 
     def test_symlink_to_parent_of_scan_dir(self) -> None:
         """Test symlink to a parent of the scan directory is detected."""
         (self.scan_dir / "link_to_parent").symlink_to(self.test_dir)
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, {self.test_dir.resolve()})
 
     def test_multiple_external_roots_with_children(self) -> None:
@@ -170,7 +170,7 @@ class ListExternalMountsTest(unittest.TestCase):
         (self.scan_dir / "link3").symlink_to(external2_child)
         (self.scan_dir / "link4").symlink_to(external_dir2)
 
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(
             result,
             {
@@ -189,7 +189,7 @@ class ListExternalMountsTest(unittest.TestCase):
         # Chain: external_dir/link2 -> external_dir2
         (self.external_dir / "link2").symlink_to(external_dir2)
 
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
 
         self.assertEqual(
             result,
@@ -211,12 +211,12 @@ class ListExternalMountsTest(unittest.TestCase):
         (intermediate_dir / "link2").symlink_to(external_dir2)
         (self.scan_dir / "link1").symlink_to(intermediate_dir / "link2")
 
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
 
         self.assertEqual(
             result,
             {
-                intermediate_dir / "link2",
+                intermediate_dir.resolve() / "link2",
                 external_dir2.resolve(),
             },
         )
@@ -254,7 +254,7 @@ class ListExternalMountsTest(unittest.TestCase):
         external_dir3.mkdir()
         (sub_bazel_dir / "link_to_external3").symlink_to(external_dir3)
 
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(
             result,
             {
@@ -281,7 +281,7 @@ class ListExternalMountsTest(unittest.TestCase):
         external_dir.mkdir()
         (non_bazel_dir / "link_to_external").symlink_to(external_dir)
 
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(
             result,
             {
@@ -295,7 +295,7 @@ class ListExternalMountsTest(unittest.TestCase):
         sub_dir.mkdir()
         link_path = sub_dir / "link_to_external"
         link_path.symlink_to("../../external")
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, {self.external_dir.resolve()})
 
     def test_venv_directory_is_ignored(self) -> None:
@@ -309,7 +309,7 @@ class ListExternalMountsTest(unittest.TestCase):
         external_dir2.mkdir()
         (self.scan_dir / "link_to_external2").symlink_to(external_dir2)
 
-        result = list_external_mounts.list_external_mounts(self.scan_dir)
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
 
         self.assertEqual(result, {external_dir2.resolve()})
 
@@ -321,34 +321,62 @@ class ListExternalMountsMainTest(unittest.TestCase):
 
     @patch("sys.stdout", new_callable=StringIO)
     @patch("pathlib.Path.cwd")
-    @patch("scripts.list_external_mounts.list_external_mounts")
+    @patch("scripts.list_external_mounts.get_minimal_mounts")
     def test_main_with_default_cwd(
-        self, mock_list_mounts: MagicMock, mock_cwd: MagicMock, mock_stdout: MagicMock
+        self,
+        mock_get_minimal_mounts: MagicMock,
+        mock_cwd: MagicMock,
+        mock_stdout: MagicMock,
     ) -> None:
         """Test main uses current working directory by default."""
         mock_cwd.return_value = Path("/default/path")
-        mock_list_mounts.return_value = {Path("/a/b"), Path("/c/d")}
+        mock_get_minimal_mounts.return_value = {Path("/a/b"), Path("/c/d")}
 
         with patch("sys.argv", ["list_external_mounts.py"]):
             list_external_mounts.main()
 
-        mock_list_mounts.assert_called_once_with(Path("/default/path"))
+        mock_get_minimal_mounts.assert_called_once_with(Path("/default/path"), [])
         self.assertEqual(sorted(mock_stdout.getvalue().splitlines()), ["/a/b", "/c/d"])
 
     @patch("sys.stdout", new_callable=StringIO)
-    @patch("scripts.list_external_mounts.list_external_mounts")
+    @patch("scripts.list_external_mounts.get_minimal_mounts")
     def test_main_with_custom_dir(
-        self, mock_list_mounts: MagicMock, mock_stdout: MagicMock
+        self, mock_get_minimal_mounts: MagicMock, mock_stdout: MagicMock
     ) -> None:
         """Test main uses the directory provided in the command line."""
-        mock_list_mounts.return_value = {Path("/e/f")}
+        mock_get_minimal_mounts.return_value = {Path("/e/f")}
         custom_dir = "/custom/dir"
 
-        with patch("sys.argv", ["list_external_mounts.py", custom_dir]):
+        with patch("sys.argv", ["list_external_mounts.py", "--root-dir", custom_dir]):
             list_external_mounts.main()
 
-        mock_list_mounts.assert_called_once_with(Path(custom_dir))
+        mock_get_minimal_mounts.assert_called_once_with(Path(custom_dir), [])
         self.assertEqual(sorted(mock_stdout.getvalue().splitlines()), ["/e/f"])
+
+    @patch("sys.stdout", new_callable=StringIO)
+    @patch("scripts.list_external_mounts.get_minimal_mounts")
+    def test_main_with_mounts(
+        self, mock_get_minimal_mounts: MagicMock, mock_stdout: MagicMock
+    ) -> None:
+        """Test main correctly handles additional mounts."""
+        mock_get_minimal_mounts.return_value = {
+            Path("/symlink/path"),
+            Path("/mount/path1"),
+            Path("/mount/path2"),
+        }
+        mount1 = "/mount/path1"
+        mount2 = "/mount/path2"
+
+        with patch(
+            "sys.argv",
+            ["list_external_mounts.py", "--mount", mount1, "--mount", mount2],
+        ):
+            list_external_mounts.main()
+
+        self.assertEqual(
+            sorted(mock_stdout.getvalue().splitlines()),
+            ["/mount/path1", "/mount/path2", "/symlink/path"],
+        )
 
 
 if __name__ == "__main__":  # pragma: no cover

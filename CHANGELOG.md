@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.4.0 (2025-09-26)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.6.1
+* **deps:** Upgrade pre-commit hooks
+
+
+### Features
+
+* Reduce number of docker mounts
+* Unify handling for external mounts
+
 ## 1.3.0 (2025-09-25)
 
 

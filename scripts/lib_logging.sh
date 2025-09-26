@@ -24,14 +24,18 @@ if ! (return 0 2>/dev/null); then
   exit 1
 fi
 
+SCRIPT_NAME=$(basename "$0")
+readonly SCRIPT_NAME
+
+# copybara: strip_begin
+source "${SCRIPTS}/../google_internal/tools/metrics/set_variables.sh"
+# copybara: strip_end
+
 readonly DEVKIT_LOGS_DIR="${HOME}/.devkit/logs"
 mkdir -p "${DEVKIT_LOGS_DIR}"
 
 TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S.%N')
 readonly TIMESTAMP
-
-SCRIPT_NAME=$(basename "$0")
-readonly SCRIPT_NAME
 
 export DEVKIT_LOG_FILE="${DEVKIT_LOGS_DIR}/${TIMESTAMP}-${SCRIPT_NAME}.log"
 readonly DEVKIT_LOG_FILE
