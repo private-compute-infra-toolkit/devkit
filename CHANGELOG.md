@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.5.0 (2025-10-02)
+
+
+### Features
+
+* Add ephemeral mode to VSCode IDE
+* Do not use build-env for gcloud setup
+
 ## 1.4.0 (2025-09-26)
 
 

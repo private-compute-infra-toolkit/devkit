@@ -1,3 +1,4 @@
 usage:
   devkit/vscode_ide <options>
     --server                   run in server mode
+    --ephemeral                run in ephemeral mode

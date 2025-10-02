@@ -23,13 +23,13 @@ set -o nounset
 function usage() {
   local -i exitval=${1-1}
   cat &>/dev/stdout << USAGE
-usage: $(basename "${BASH_SOURCE[0]}") [--help] [--account ACCOUNT]
+usage: $(basename "${BASH_SOURCE[0]}") [--help] --account ACCOUNT
 
 Sets up gcloud for usage with devkit.
 
 Options:
   --help                Show this help message and exit.
-  --account             The gcloud account to use. Defaults to '${USER}@google.com'.
+  --account             The gcloud account to use.
 USAGE
   exit ${exitval}
 }
@@ -57,7 +57,14 @@ function get_config_value() {
   echo "${value}"
 }
 
+SCRIPTS="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
+readonly SCRIPTS
+
+source "${SCRIPTS}/lib_logging.sh"
+
+# copybara: strip_begin
 ACCOUNT="${USER}@google.com"
+# copybara: strip_end
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -75,6 +82,11 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
+if [[ -z "${ACCOUNT:-}" ]]; then
+  echo "Error: Account is not set. Please use the --account flag." >&2
+  exit 1
+fi
+
 if [[ ! -f /.dockerenv ]]; then
   echo "Error: This script must be run inside a Docker container."
   exit 1
@@ -87,13 +99,11 @@ for cmd in gcloud jq; do
   fi
 done
 
-SCRIPTS="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
 PROJECT_ROOT="$("${SCRIPTS}"/find_project_root)"
 DEVKIT_CONFIG_PATH="${PROJECT_ROOT}/devkit.json"
 DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_PROJECT=".docker.registry.project"
 DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_HOST=".docker.registry.host"
 
-readonly SCRIPTS
 readonly PROJECT_ROOT
 readonly DEVKIT_CONFIG_PATH
 readonly DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_PROJECT

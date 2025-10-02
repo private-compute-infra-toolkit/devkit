@@ -30,16 +30,22 @@ function usage() {
 usage:
   $0 <options>
     --server                   run in server mode
+    --ephemeral                run in ephemeral mode
 USAGE
   exit ${exitval}
 }
 
 declare -i SERVER=0
+declare -i EPHEMERAL=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --server)
       SERVER=1
+      shift
+      ;;
+    --ephemeral)
+      EPHEMERAL=1
       shift
       ;;
     -h | --help) usage 0 ;;
@@ -79,6 +85,13 @@ declare -a ARGS=(
 )
 
 declare -a COMMAND=(code)
+
+if [[ ${EPHEMERAL} -eq 1 ]]; then
+  USER_DATA="$(mktemp --directory)"
+  trap 'rm -rf "${USER_DATA}"' EXIT
+  COMMAND+=(--user-data-dir="${USER_DATA}")
+fi
+
 if [[ ${SERVER} -eq 1 ]]; then
   VSCODE_SERVER_HOME="${HOME}/.vscode-server"
   mkdir -p "${VSCODE_SERVER_HOME}"

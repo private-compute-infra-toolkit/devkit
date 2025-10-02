@@ -1,4 +1,3 @@
-#!/bin/bash
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,18 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# Sets up gcloud for usage with devkit.
-#
+ARG GCLOUD_CLI_VERSION=540.0.0
 
-set -o errexit
-set -o nounset
+FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:${GCLOUD_CLI_VERSION}-slim
 
-DEVKIT="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
-readonly DEVKIT
+ARG JQ_VERSION=1.6-*
+ARG SUDO_VERSION=1.9.*
 
-readonly SCRIPTS="${DEVKIT}/../scripts"
-
-source "${SCRIPTS}/lib_logging.sh"
-
-"${SCRIPTS}/build_and_run" gcloud-env "${SCRIPTS}/gcloud_setup" "$@"
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    jq=${JQ_VERSION} \
+    sudo=${SUDO_VERSION} \
+ && rm -rf /var/lib/apt/lists/*

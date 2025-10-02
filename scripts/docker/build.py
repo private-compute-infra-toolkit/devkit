@@ -69,6 +69,7 @@ def load_config(config_path: str) -> None:
 
 class ImageConfig(TypedDict):
     deps: Dict[str, str]
+    local: Optional[bool]
 
 
 ImageConfigsMap = Dict[str, ImageConfig]
@@ -125,108 +126,37 @@ def manage_docker_image(
     dockerfile_path: str,
     build_args_list: List[str],
     context_path: str,
+    local_image_mode: Optional[bool],
 ) -> None:
     """
-    Checks if a Docker image exists, pulls it if available in registry,
-    or builds and pushes it otherwise.
+    If local_image_mode is true:
+        Checks if a Docker image exists and if not, it builds it.
+    Otherwise:
+        Checks if a Docker image exists, pulls it if available in registry,
+        or builds and pushes it otherwise.
     Args:
         tag: The full tag of the image.
         dockerfile_path: Absolute path to the Dockerfile.
         build_args_list: A list of build arguments,
           e.g., ["ARG_NAME1", "VALUE1", "ARG_NAME2", "VALUE2"].
         context_path: The Docker build context path.
+        local_image_mode: The flag that controls whether the image should be local-only,
+          i.e. if true, the image won't be pulled from and pushed to remote registry.
     """
     try:
-        # 1. Check if image exists locally
-        logging.info("Checking for local image: %s", tag)
-        inspect_cmd = ["docker", "image", "inspect", tag]
-        inspect_result = subprocess.run(
-            inspect_cmd, capture_output=True, text=True, check=False
-        )
-
-        if inspect_result.returncode == 0:
-            logging.info("Image %s already exists locally. Skipping build/pull.", tag)
+        if check_if_image_exists_locally(tag):
             return
 
-        # 2. If not local, check manifest remotely
-        logging.info("Checking for remote image manifest: %s", tag)
-        manifest_inspect_cmd = ["docker", "manifest", "inspect", tag]
-        manifest_result = subprocess.run(
-            manifest_inspect_cmd, capture_output=True, text=True, check=False
-        )
-
-        if manifest_result.returncode == 0:
-            logging.info("Image %s found in remote registry. Pulling...", tag)
-            print(f"Pulling image: {tag}...", file=sys.stderr, end="", flush=True)
-            pull_cmd = ["docker", "pull", tag]
-            process = subprocess.run(
-                pull_cmd, check=True, text=True, capture_output=True
-            )
-            print(" [OK]", file=sys.stderr)
-            if process.stdout:
-                logging.info(process.stdout.strip())
-            if process.stderr:
-                logging.warning(process.stderr.strip())
-            logging.info("Image %s pulled successfully.", tag)
+        if local_image_mode:
+            build_image(tag, dockerfile_path, build_args_list, context_path)
             return
 
-        # 4. If manifest does not exist, build and push
-        logging.info(
-            "Image %s not found locally or in remote registry. Building...", tag
-        )
-        print(f"Building image: {tag}...", file=sys.stderr, end="", flush=True)
+        if check_if_image_exists_in_remote_registry(tag):
+            pull_image_from_registry(tag)
+            return
 
-        docker_build_cmd = [
-            "docker",
-            "buildx",
-            "build",
-            "--tag",
-            tag,
-            "--file",
-            dockerfile_path,
-        ]
-
-        idx = 0
-        while idx < len(build_args_list):
-            arg_name = build_args_list[idx]
-            arg_value = build_args_list[idx + 1]
-            docker_build_cmd.append("--build-arg")
-            docker_build_cmd.append(f"{arg_name}={arg_value}")
-            idx += 2
-
-        docker_build_cmd.append(context_path)  # Docker build context
-
-        logging.info("Executing build: %s", " ".join(docker_build_cmd))
-        process = subprocess.run(
-            docker_build_cmd, check=True, text=True, capture_output=True
-        )
-        print(" [OK]", file=sys.stderr)
-        if process.stdout:
-            logging.info(process.stdout.strip())
-        if process.stderr:
-            logging.warning(process.stderr.strip())
-        logging.info("Image %s built successfully.", tag)
-
-        logging.info("Pushing image %s...", tag)
-        print(f"Pushing image: {tag}...", file=sys.stderr, end="", flush=True)
-        push_cmd = ["docker", "push", tag]
-        push_result = subprocess.run(
-            push_cmd, check=False, text=True, capture_output=True
-        )
-        if push_result.returncode == 0:
-            print(" [OK]", file=sys.stderr)
-            if push_result.stdout:
-                logging.info(push_result.stdout.strip())
-            if push_result.stderr:
-                logging.warning(push_result.stderr.strip())
-            logging.info("Image %s pushed successfully.", tag)
-        else:
-            print(" [FAILED]", file=sys.stderr)
-            logging.warning(
-                "Failed to push image %s. Continuing with local image.", tag
-            )
-            if push_result.stderr:
-                logging.warning("Details: %s", push_result.stderr.strip())
+        build_image(tag, dockerfile_path, build_args_list, context_path)
+        push_image_to_registry(tag)
 
     except subprocess.CalledProcessError as e:
         print(" [FAILED]", file=sys.stderr)
@@ -245,6 +175,151 @@ def manage_docker_image(
         sys.exit(1)
 
 
+def check_if_image_exists_locally(tag: str) -> bool:
+    """
+    Check if docker image exists locally.
+
+    Args:
+        tag: The full tag of the image.
+
+    Returns:
+        bool: True if image exists, False otherwise.
+    """
+    logging.info("Checking for local image: %s", tag)
+    inspect_cmd = ["docker", "image", "inspect", tag]
+    inspect_result = subprocess.run(
+        inspect_cmd, capture_output=True, text=True, check=False
+    )
+
+    if inspect_result.returncode == 0:
+        logging.info("Image %s already exists locally.", tag)
+        return True
+    logging.info("Image %s not found locally.", tag)
+    return False
+
+
+def build_image(
+    tag: str, dockerfile_path: str, build_args_list: List[str], context_path: str
+) -> None:
+    """
+    Builds docker image.
+
+    Args:
+        tag: The full tag of the image.
+        dockerfile_path: Absolute path to the Dockerfile.
+        build_args_list: A list of build arguments,
+          e.g., ["ARG_NAME1", "VALUE1", "ARG_NAME2", "VALUE2"].
+        context_path: The Docker build context path.
+
+    Returns:
+        None
+    """
+    print(f"Building image: {tag}...", file=sys.stderr, end="", flush=True)
+
+    docker_build_cmd = [
+        "docker",
+        "buildx",
+        "build",
+        "--tag",
+        tag,
+        "--file",
+        dockerfile_path,
+    ]
+
+    idx = 0
+    while idx < len(build_args_list):
+        arg_name = build_args_list[idx]
+        arg_value = build_args_list[idx + 1]
+        docker_build_cmd.append("--build-arg")
+        docker_build_cmd.append(f"{arg_name}={arg_value}")
+        idx += 2
+
+    docker_build_cmd.append(context_path)  # Docker build context
+
+    logging.info("Executing build: %s", " ".join(docker_build_cmd))
+    process = subprocess.run(
+        docker_build_cmd, check=True, text=True, capture_output=True
+    )
+    print(" [OK]", file=sys.stderr)
+    if process.stdout:
+        logging.info(process.stdout.strip())
+    if process.stderr:
+        logging.warning(process.stderr.strip())
+    logging.info("Image %s built successfully.", tag)
+
+
+def check_if_image_exists_in_remote_registry(tag: str) -> bool:
+    """
+    Checks if image exists in remote docker registry.
+
+    Args:
+        tag: The full tag of the image.
+
+    Returns:
+        bool: True if image exists remotely, False otherwise
+    """
+    logging.info("Checking for remote image manifest: %s", tag)
+    manifest_inspect_cmd = ["docker", "manifest", "inspect", tag]
+    manifest_result = subprocess.run(
+        manifest_inspect_cmd, capture_output=True, text=True, check=False
+    )
+
+    if manifest_result.returncode == 0:
+        logging.info("Image %s found in remote registry.", tag)
+        return True
+    logging.info("Image %s not found in remote registry.", tag)
+    return False
+
+
+def pull_image_from_registry(tag: str) -> None:
+    """
+    Pulls image from remote docker registry.
+
+    Args:
+        tag: The full tag of the image.
+
+    Returns:
+        None
+    """
+    print(f"Pulling image: {tag}...", file=sys.stderr, end="", flush=True)
+    pull_cmd = ["docker", "pull", tag]
+    process = subprocess.run(pull_cmd, check=True, text=True, capture_output=True)
+    print(" [OK]", file=sys.stderr)
+    if process.stdout:
+        logging.info(process.stdout.strip())
+    if process.stderr:
+        logging.warning(process.stderr.strip())
+    logging.info("Image %s pulled successfully.", tag)
+
+
+def push_image_to_registry(tag: str) -> None:
+    """
+    Push image to remote docker registry.
+
+    Args:
+        tag: The full tag of the image.
+
+    Returns:
+        None
+    """
+    logging.info("Pushing image %s...", tag)
+    print(f"Pushing image: {tag}...", file=sys.stderr, end="", flush=True)
+    push_cmd = ["docker", "push", tag]
+    push_result = subprocess.run(push_cmd, check=False, text=True, capture_output=True)
+    if push_result.returncode == 0:
+        print(" [OK]", file=sys.stderr)
+        if push_result.stdout:
+            logging.info(push_result.stdout.strip())
+        if push_result.stderr:
+            logging.warning(push_result.stderr.strip())
+        logging.info("Image %s pushed successfully.", tag)
+    else:
+        print(" [FAILED]", file=sys.stderr)
+        logging.warning("Failed to push image %s. Continuing with local image.", tag)
+        if push_result.stderr:
+            logging.warning("Details: %s", push_result.stderr.strip())
+
+
 def process_image(
     image_name: str,
     dependencies: Dict[str, str],
@@ -252,6 +327,7 @@ def process_image(
     print_tag_mode: bool,
     target_image_for_tag_print: Optional[str],
     search_paths: List[str],
+    local_image_mode: Optional[bool],
 ) -> Optional[str]:
     """
     Processes a single image: calculates its tag, builds/pulls/pushes it,
@@ -330,7 +406,11 @@ def process_image(
 
     context_path = os.path.dirname(dockerfile_path)
     manage_docker_image(
-        current_tag, dockerfile_path, build_args_for_manage, context_path
+        current_tag,
+        dockerfile_path,
+        build_args_for_manage,
+        context_path,
+        local_image_mode,
     )
 
     if print_tag_mode:
@@ -494,6 +574,7 @@ def main() -> None:
     for image_name in images_to_process:
         image_conf = image_configs_map[image_name]
         dependencies = image_conf["deps"]
+        local_image_mode = image_conf["local"] if "local" in image_conf else None
 
         process_image(
             image_name,
@@ -502,6 +583,7 @@ def main() -> None:
             print_tag_mode,
             target_image_for_tag_print,
             args.search_path,
+            local_image_mode,
         )
 
     if print_tag_mode:

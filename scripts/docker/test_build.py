@@ -20,7 +20,7 @@ import os
 import subprocess
 import sys
 import unittest
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from unittest.mock import MagicMock, call, mock_open, patch
 import graphlib
 
@@ -283,16 +283,14 @@ class TestBuildScript(unittest.TestCase):
     ) -> None:
         """Test manage_docker_image when image exists locally."""
         mock_run.return_value = MagicMock(returncode=0)
-        build.manage_docker_image("tag", "Dockerfile", [], "context")
+        build.manage_docker_image("tag", "Dockerfile", [], "context", None)
         mock_run.assert_called_once_with(
             ["docker", "image", "inspect", "tag"],
             capture_output=True,
             text=True,
             check=False,
         )
-        mock_log_info.assert_any_call(
-            "Image %s already exists locally. Skipping build/pull.", "tag"
-        )
+        mock_log_info.assert_any_call("Image %s already exists locally.", "tag")
 
     @patch("builtins.print")
     @patch("subprocess.run")
@@ -305,7 +303,7 @@ class TestBuildScript(unittest.TestCase):
             MagicMock(returncode=0),
             MagicMock(returncode=0, stdout="pulled", stderr="pull warning"),
         ]
-        build.manage_docker_image("tag", "Dockerfile", [], "context")
+        build.manage_docker_image("tag", "Dockerfile", [], "context", None)
         self.assertEqual(mock_run.call_count, 3)
         expected_calls = [
             call("Pulling image: tag...", file=sys.stderr, end="", flush=True),
@@ -325,7 +323,7 @@ class TestBuildScript(unittest.TestCase):
             MagicMock(returncode=0, stdout="built", stderr="build warning"),
             MagicMock(returncode=0, stdout="pushed", stderr="push warning"),
         ]
-        build.manage_docker_image("tag", "Dockerfile", ["ARG", "val"], "context")
+        build.manage_docker_image("tag", "Dockerfile", ["ARG", "val"], "context", None)
         self.assertEqual(mock_run.call_count, 4)
         expected_calls = [
             call("Building image: tag...", file=sys.stderr, end="", flush=True),
@@ -348,7 +346,7 @@ class TestBuildScript(unittest.TestCase):
             MagicMock(returncode=0, stdout="built", stderr=""),
             MagicMock(returncode=1, stderr="push failed"),
         ]
-        build.manage_docker_image("tag", "Dockerfile", [], "context")
+        build.manage_docker_image("tag", "Dockerfile", [], "context", None)
         self.assertEqual(mock_run.call_count, 4)
         mock_log_warning.assert_any_call(
             "Failed to push image %s. Continuing with local image.", "tag"
@@ -372,7 +370,7 @@ class TestBuildScript(unittest.TestCase):
         error.stderr = "err"
         mock_run.side_effect = error
         with self.assertRaises(SysExitCalled):
-            build.manage_docker_image("tag", "Dockerfile", [], "context")
+            build.manage_docker_image("tag", "Dockerfile", [], "context", None)
         self.mock_sys_exit.assert_called_once_with(1)
         mock_print.assert_called_once_with(" [FAILED]", file=sys.stderr)
 
@@ -382,7 +380,7 @@ class TestBuildScript(unittest.TestCase):
     ) -> None:
         """Test manage_docker_image with CalledProcessError with exit code 0."""
         with self.assertRaises(SysExitCalled):
-            build.manage_docker_image("tag", "Dockerfile", [], "context")
+            build.manage_docker_image("tag", "Dockerfile", [], "context", None)
         self.mock_sys_exit.assert_called_once_with(1)
 
     @patch("subprocess.run", side_effect=FileNotFoundError)
@@ -391,7 +389,7 @@ class TestBuildScript(unittest.TestCase):
     ) -> None:
         """Test manage_docker_image with FileNotFoundError."""
         with self.assertRaises(SysExitCalled):
-            build.manage_docker_image("tag", "Dockerfile", [], "context")
+            build.manage_docker_image("tag", "Dockerfile", [], "context", None)
         self.mock_sys_exit.assert_called_once_with(1)
 
     @patch("os.path.exists", return_value=False)
@@ -400,7 +398,7 @@ class TestBuildScript(unittest.TestCase):
     ) -> None:
         """Test process_image when Dockerfile is not found."""
         with self.assertRaises(SysExitCalled):
-            build.process_image("image", {}, {}, False, None, ["search/path"])
+            build.process_image("image", {}, {}, False, None, ["search/path"], None)
         self.mock_sys_exit.assert_called_once_with(1)
 
     @patch("os.path.exists", return_value=True)
@@ -411,7 +409,7 @@ class TestBuildScript(unittest.TestCase):
         """Test process_image when a dependency tag is not found."""
         with self.assertRaises(SysExitCalled):
             build.process_image(
-                "image", {"DEP": "dep-image"}, {}, False, None, ["search/path"]
+                "image", {"DEP": "dep-image"}, {}, False, None, ["search/path"], None
             )
         self.mock_sys_exit.assert_called_once_with(1)
 
@@ -426,7 +424,7 @@ class TestBuildScript(unittest.TestCase):
     ) -> None:
         """Test process_image with FileNotFoundError during SHA calculation."""
         with self.assertRaises(SysExitCalled):
-            build.process_image("image", {}, {}, False, None, ["search/path"])
+            build.process_image("image", {}, {}, False, None, ["search/path"], None)
         self.mock_sys_exit.assert_called_once_with(1)
 
     @patch("os.path.exists", return_value=True)
@@ -446,7 +444,7 @@ class TestBuildScript(unittest.TestCase):
         generated_tags: Dict[str, str] = {"dep-image": "dep-tag"}
         dependencies = {"DEP": "dep-image"}
         tag = build.process_image(
-            "image", dependencies, generated_tags, False, None, ["search/path"]
+            "image", dependencies, generated_tags, False, None, ["search/path"], None
         )
         self.assertEqual(tag, "tag123")
         self.assertEqual(generated_tags["image"], "tag123")
@@ -457,6 +455,7 @@ class TestBuildScript(unittest.TestCase):
             "/abs/path/to/Dockerfile",
             ["DEP", "dep-tag"],
             "/abs/path/to",
+            None,
         )
 
     @patch("os.path.exists", return_value=True)
@@ -474,7 +473,7 @@ class TestBuildScript(unittest.TestCase):
     ) -> None:
         """Test process_image with print_tag_mode enabled."""
         with self.assertRaises(SysExitCalled):
-            build.process_image("image", {}, {}, True, "image", ["search/path"])
+            build.process_image("image", {}, {}, True, "image", ["search/path"], None)
         self.mock_sys_exit.assert_called_once_with(0)
 
     def test_get_dependency_subgraph_target_not_in_map(self) -> None:
@@ -485,10 +484,10 @@ class TestBuildScript(unittest.TestCase):
     def test_get_dependency_subgraph_success(self) -> None:
         """Test get_dependency_subgraph for a valid graph."""
         image_configs_map: Dict[str, build.ImageConfig] = {
-            "a": {"deps": {"FROM": "b"}},
-            "b": {"deps": {"FROM": "c"}},
-            "c": {"deps": {}},
-            "d": {"deps": {}},
+            "a": {"deps": {"FROM": "b"}, "local": None},
+            "b": {"deps": {"FROM": "c"}, "local": None},
+            "c": {"deps": {}, "local": None},
+            "d": {"deps": {}, "local": None},
         }
         result = build.get_dependency_subgraph("a", image_configs_map)
         self.assertEqual(result, ["c", "b", "a"])
@@ -496,8 +495,8 @@ class TestBuildScript(unittest.TestCase):
     def test_get_dependency_subgraph_cycle(self) -> None:
         """Test get_dependency_subgraph with a cycle."""
         image_configs_map: Dict[str, build.ImageConfig] = {
-            "a": {"deps": {"FROM": "b"}},
-            "b": {"deps": {"FROM": "a"}},
+            "a": {"deps": {"FROM": "b"}, "local": None},
+            "b": {"deps": {"FROM": "a"}, "local": None},
         }
         with self.assertRaises(SysExitCalled):
             build.get_dependency_subgraph("a", image_configs_map)
@@ -522,18 +521,19 @@ class TestBuildScript(unittest.TestCase):
             print_tag=False,
             config="conf",
             search_path=["path"],
+            log_file=None,
         )
         mock_argparse.return_value.parse_args.return_value = args
         image_configs: build.ImageConfigsMap = {
-            "a": {"deps": {}},
-            "b": {"deps": {}},
+            "a": {"deps": {}, "local": None},
+            "b": {"deps": {}, "local": None},
         }
         mock_load_images.return_value = image_configs
         mock_subgraph.return_value = ["a"]
         build.main()
         mock_load_images.assert_called_once_with(["path"])
         mock_subgraph.assert_called_once_with("a", image_configs)
-        mock_process.assert_called_once_with("a", {}, {}, False, None, ["path"])
+        mock_process.assert_called_once_with("a", {}, {}, False, None, ["path"], None)
 
     @patch("argparse.ArgumentParser")
     @patch("scripts.docker.build.load_config")
@@ -554,11 +554,12 @@ class TestBuildScript(unittest.TestCase):
             print_tag=False,
             config="conf",
             search_path=["path"],
+            log_file=None,
         )
         mock_argparse.return_value.parse_args.return_value = args
         image_configs: build.ImageConfigsMap = {
-            "a": {"deps": {"FROM": "b"}},
-            "b": {"deps": {}},
+            "a": {"deps": {"FROM": "b"}, "local": None},
+            "b": {"deps": {}, "local": None},
         }
         mock_load_images.return_value = image_configs
         mock_sorter.return_value.static_order.return_value = ["b", "a"]
@@ -572,6 +573,7 @@ class TestBuildScript(unittest.TestCase):
             print_tag_mode: bool,
             target_image_for_tag_print: str,
             search_paths: List[str],
+            local_image_mode: Optional[bool],
         ) -> str:
             actual_calls.append(
                 call(
@@ -581,6 +583,7 @@ class TestBuildScript(unittest.TestCase):
                     print_tag_mode,
                     target_image_for_tag_print,
                     search_paths,
+                    local_image_mode,
                 )
             )
             tag = f"tag-for-{image_name}"
@@ -594,7 +597,7 @@ class TestBuildScript(unittest.TestCase):
         mock_sorter.assert_called_once_with({"a": {"b"}, "b": set()})
         self.assertEqual(len(actual_calls), 2)
         expected_calls = [
-            call("b", {}, {}, False, None, ["path"]),
+            call("b", {}, {}, False, None, ["path"], None),
             call(
                 "a",
                 {"FROM": "b"},
@@ -602,6 +605,7 @@ class TestBuildScript(unittest.TestCase):
                 False,
                 None,
                 ["path"],
+                None,
             ),
         ]
         self.assertEqual(actual_calls, expected_calls)
@@ -703,6 +707,210 @@ class TestBuildScript(unittest.TestCase):
         with self.assertRaises(SysExitCalled):
             build.main()
         self.mock_sys_exit.assert_called_once_with(1)
+
+    @patch("subprocess.run")
+    def test_manage_docker_image_local_mode_exists_locally(
+        self, mock_run: MagicMock
+    ) -> None:
+        """Test manage_docker_image in local mode when image exists locally."""
+        # First call to 'docker image inspect' returns 0, so image exists.
+        mock_run.return_value = MagicMock(returncode=0)
+        build.manage_docker_image("tag", "Dockerfile", [], "context", True)
+        # inspect is called, and since it returns 0, nothing else is called.
+        mock_run.assert_called_once_with(
+            ["docker", "image", "inspect", "tag"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    @patch("builtins.print")
+    @patch("subprocess.run")
+    def test_manage_docker_image_local_mode_builds(
+        self, mock_run: MagicMock, mock_print: MagicMock
+    ) -> None:
+        """
+        Test manage_docker_image in local mode builds but does not check remote or push.
+        """
+        # First call to 'docker image inspect' returns 1 (not found).
+        # Second call is the build, which succeeds.
+        mock_run.side_effect = [
+            MagicMock(returncode=1),  # image inspect
+            MagicMock(returncode=0, stdout="built", stderr=""),  # build
+        ]
+        build.manage_docker_image("tag", "Dockerfile", ["ARG", "val"], "context", True)
+
+        expected_calls = [
+            call(
+                ["docker", "image", "inspect", "tag"],
+                capture_output=True,
+                text=True,
+                check=False,
+            ),
+            call(
+                [
+                    "docker",
+                    "buildx",
+                    "build",
+                    "--tag",
+                    "tag",
+                    "--file",
+                    "Dockerfile",
+                    "--build-arg",
+                    "ARG=val",
+                    "context",
+                ],
+                check=True,
+                text=True,
+                capture_output=True,
+            ),
+        ]
+        mock_run.assert_has_calls(expected_calls)
+        self.assertEqual(mock_run.call_count, 2)
+
+        expected_print_calls = [
+            call("Building image: tag...", file=sys.stderr, end="", flush=True),
+            call(" [OK]", file=sys.stderr),
+        ]
+        mock_print.assert_has_calls(expected_print_calls)
+
+
+class TestDockerWrapperCommands(unittest.TestCase):
+    """Test suite for docker command wrappers."""
+
+    @patch("subprocess.run")
+    def test_check_if_image_exists_locally_exists(self, mock_run: MagicMock) -> None:
+        """Test check_if_image_exists_locally when image exists."""
+        mock_run.return_value = MagicMock(returncode=0)
+        self.assertTrue(build.check_if_image_exists_locally("tag"))
+        mock_run.assert_called_once_with(
+            ["docker", "image", "inspect", "tag"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    @patch("subprocess.run")
+    def test_check_if_image_exists_locally_not_exists(
+        self, mock_run: MagicMock
+    ) -> None:
+        """Test check_if_image_exists_locally when image does not exist."""
+        mock_run.return_value = MagicMock(returncode=1)
+        self.assertFalse(build.check_if_image_exists_locally("tag"))
+
+    @patch("builtins.print")
+    @patch("subprocess.run")
+    def test_build_image(self, mock_run: MagicMock, mock_print: MagicMock) -> None:
+        """Test build_image command construction."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="out", stderr="err")
+        build.build_image(
+            "tag", "Dockerfile", ["ARG1", "val1", "ARG2", "val2"], "context"
+        )
+        expected_cmd = [
+            "docker",
+            "buildx",
+            "build",
+            "--tag",
+            "tag",
+            "--file",
+            "Dockerfile",
+            "--build-arg",
+            "ARG1=val1",
+            "--build-arg",
+            "ARG2=val2",
+            "context",
+        ]
+        mock_run.assert_called_once_with(
+            expected_cmd, check=True, text=True, capture_output=True
+        )
+        mock_print.assert_has_calls(
+            [
+                call("Building image: tag...", file=sys.stderr, end="", flush=True),
+                call(" [OK]", file=sys.stderr),
+            ]
+        )
+
+    @patch("subprocess.run")
+    def test_check_if_image_exists_in_remote_registry_exists(
+        self, mock_run: MagicMock
+    ) -> None:
+        """Test check_if_image_exists_in_remote_registry when image exists."""
+        mock_run.return_value = MagicMock(returncode=0)
+        self.assertTrue(build.check_if_image_exists_in_remote_registry("tag"))
+        mock_run.assert_called_once_with(
+            ["docker", "manifest", "inspect", "tag"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    @patch("subprocess.run")
+    def test_check_if_image_exists_in_remote_registry_not_exists(
+        self, mock_run: MagicMock
+    ) -> None:
+        """Test check_if_image_exists_in_remote_registry when image does not exist."""
+        mock_run.return_value = MagicMock(returncode=1)
+        self.assertFalse(build.check_if_image_exists_in_remote_registry("tag"))
+        mock_run.assert_called_once_with(
+            ["docker", "manifest", "inspect", "tag"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    @patch("builtins.print")
+    @patch("subprocess.run")
+    def test_pull_image_from_registry(
+        self, mock_run: MagicMock, mock_print: MagicMock
+    ) -> None:
+        """Test pull_image_from_registry."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="out", stderr="err")
+        build.pull_image_from_registry("tag")
+        mock_run.assert_called_once_with(
+            ["docker", "pull", "tag"], check=True, text=True, capture_output=True
+        )
+        mock_print.assert_has_calls(
+            [
+                call("Pulling image: tag...", file=sys.stderr, end="", flush=True),
+                call(" [OK]", file=sys.stderr),
+            ]
+        )
+
+    @patch("builtins.print")
+    @patch("subprocess.run")
+    def test_push_image_to_registry_success(
+        self, mock_run: MagicMock, mock_print: MagicMock
+    ) -> None:
+        """Test push_image_to_registry on success."""
+        mock_run.return_value = MagicMock(returncode=0, stdout="out", stderr="err")
+        build.push_image_to_registry("tag")
+        mock_run.assert_called_once_with(
+            ["docker", "push", "tag"],
+            check=False,
+            text=True,
+            capture_output=True,
+        )
+        mock_print.assert_has_calls(
+            [
+                call("Pushing image: tag...", file=sys.stderr, end="", flush=True),
+                call(" [OK]", file=sys.stderr),
+            ]
+        )
+
+    @patch("builtins.print")
+    @patch("subprocess.run")
+    def test_push_image_to_registry_failure(
+        self, mock_run: MagicMock, mock_print: MagicMock
+    ) -> None:
+        """Test push_image_to_registry on failure."""
+        mock_run.return_value = MagicMock(returncode=1, stderr="err")
+        build.push_image_to_registry("tag")
+        mock_print.assert_has_calls(
+            [
+                call("Pushing image: tag...", file=sys.stderr, end="", flush=True),
+                call(" [FAILED]", file=sys.stderr),
+            ]
+        )
 
 
 if __name__ == "__main__":  # pragma: no cover
