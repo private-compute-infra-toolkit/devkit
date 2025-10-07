@@ -1,6 +1,6 @@
-usage: get-architecture [OPTION]...
+usage: get-architecture [-h]
 
-  Return the CPU architecture (e.g.: amd64 or arm64).
+Return the CPU architecture (e.g.: amd64 or arm64).
 
-  Options:
-    -h, --help                Show this help message and exit.
+options:
+  -h, --help            Show this help message and exit.

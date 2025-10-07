@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.6.0 (2025-10-07)
+
+
+### Features
+
+* Refactor tests for build.py
+
+### Documentation
+
+* Documentation updates
+
 ## 1.5.0 (2025-10-02)
 
 

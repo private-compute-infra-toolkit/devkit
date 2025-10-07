@@ -36,7 +36,7 @@ USAGE
 
 function log_sep() {
   printf "%.s=" {1..20}
-  echo
+  printf "\n"
   if [[ $# -gt 0 ]]; then
     echo "$@"
   fi
@@ -48,13 +48,12 @@ function get_config_value() {
   local value
 
   value="$(jq -r "${key}" "${config_path}")"
-
-  if [[ -z "${value}" || "${value}" == "null" ]]; then
-    echo "Error: Could not find '${key}' key in ${config_path}" >&2
+  if [[ -z ${value} ]] || [[ ${value} == null ]]; then
+    printf "Error: Could not find '%s' key in %s\n" "${key}" "${config_path}" >&2
     exit 1
   fi
 
-  echo "${value}"
+  printf "%s\n" "${value}"
 }
 
 SCRIPTS="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
@@ -62,17 +61,13 @@ readonly SCRIPTS
 
 source "${SCRIPTS}/lib_logging.sh"
 
-# copybara: strip_begin
-ACCOUNT="${USER}@google.com"
-# copybara: strip_end
-
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --help) usage 0 ;;
     --account)
       shift
       if [[ $# -eq 0 ]]; then
-        echo "Error: --account requires an argument." >&2
+        printf "Error: --account requires an argument.\n" >&2
         usage 1
       fi
       ACCOUNT=$1
@@ -83,18 +78,18 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "${ACCOUNT:-}" ]]; then
-  echo "Error: Account is not set. Please use the --account flag." >&2
+  printf "Error: Account is not set. Please use the --account flag.\n" >&2
   exit 1
 fi
 
 if [[ ! -f /.dockerenv ]]; then
-  echo "Error: This script must be run inside a Docker container."
+  printf "Error: This script must be run inside a Docker container.\n"
   exit 1
 fi
 
 for cmd in gcloud jq; do
   if ! command -v "${cmd}" &> /dev/null; then
-    echo "Error: Required command '${cmd}' is not installed." >&2
+    printf "Error: Required command '%s' is not installed.\n" "${cmd}" >&2
     exit 1
   fi
 done
@@ -110,7 +105,7 @@ readonly DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_PROJECT
 readonly DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_HOST
 
 if [[ ! -f "${DEVKIT_CONFIG_PATH}" ]]; then
-  echo "Error: Devkit config file not found at ${DEVKIT_CONFIG_PATH}" >&2
+  printf "Error: Devkit config file not found at %s\n" "${DEVKIT_CONFIG_PATH}" >&2
   exit 1
 fi
 
@@ -118,39 +113,39 @@ PROJECT="$(get_config_value "${DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_PROJECT}" "${DE
 readonly PROJECT
 
 log_sep "Configuring gcloud account..."
-CURRENT_ACCOUNT=$(gcloud config get-value account 2>/dev/null || true)
+CURRENT_ACCOUNT="$(gcloud config get-value account 2>/dev/null || true)"
 readonly CURRENT_ACCOUNT
-if [[ "${CURRENT_ACCOUNT}" != "${ACCOUNT}" ]]; then
+if [[ ${CURRENT_ACCOUNT} != "${ACCOUNT}" ]]; then
   gcloud config set account "${ACCOUNT}" --quiet
-  echo "Account is now set to ${ACCOUNT}."
+  printf "Account is now set to %s.\n" "${ACCOUNT}"
 else
-  echo "Gcloud account is already set to ${ACCOUNT}."
+  printf "gcloud account is already set to %s.\n" "${ACCOUNT}"
 fi
 
 log_sep "Configuring gcloud project..."
-CURRENT_PROJECT=$(gcloud config get-value project 2>/dev/null || true)
+CURRENT_PROJECT="$(gcloud config get-value project 2>/dev/null || true)"
 readonly CURRENT_PROJECT
-if [[ "${CURRENT_PROJECT}" != "${PROJECT}" ]]; then
+if [[ ${CURRENT_PROJECT} != "${PROJECT}" ]]; then
   gcloud config set project "${PROJECT}" --quiet
-  echo "Project is now set to ${PROJECT}."
+  printf "Project is now set to %s.\n" "${PROJECT}"
 else
-  echo "Project is already set to ${PROJECT}."
+  printf "Project is already set to %s.\n" "${PROJECT}"
 fi
 
 log_sep "Checking authentication..."
-if ! gcloud auth print-access-token --account="${ACCOUNT}" &> /dev/null; then
-  echo "Logging into gcloud as ${ACCOUNT}..."
+if ! gcloud auth print-access-token --account="${ACCOUNT}" &>/dev/null; then
+  printf "Logging into gcloud as %s...\n" "${ACCOUNT}"
   gcloud auth login "${ACCOUNT}" --quiet
 else
-  echo "Already logged in as ${ACCOUNT}."
+  printf "Already logged in as %s.\n" "${ACCOUNT}"
 fi
 
 log_sep "Checking application-default credentials..."
-if ! gcloud auth application-default print-access-token --account="${ACCOUNT}" &> /dev/null; then
-  echo "Setting application-default credentials..."
+if ! gcloud auth application-default print-access-token --account="${ACCOUNT}" &>/dev/null; then
+  printf "Setting application-default credentials...\n"
   gcloud auth application-default login --quiet
 else
-  echo "Application-default credentials already set."
+  printf "Application-default credentials already set.\n"
 fi
 
 log_sep "Configuring Docker credentials..."

@@ -276,121 +276,188 @@ class TestBuildScript(unittest.TestCase):
         tag = build.get_image_tag("image-name", "12345")
         self.assertEqual(tag, "devkit/image-name:amd64-12345")
 
-    @patch("subprocess.run")
-    @patch("logging.info")
+    @patch("scripts.docker.build.push_image_to_registry")
+    @patch("scripts.docker.build.build_image")
+    @patch("scripts.docker.build.pull_image_from_registry")
+    @patch("scripts.docker.build.check_if_image_exists_in_remote_registry")
+    @patch("scripts.docker.build.check_if_image_exists_locally")
     def test_manage_docker_image_exists_locally(
-        self, mock_log_info: MagicMock, mock_run: MagicMock
+        self,
+        mock_check_local: MagicMock,
+        mock_check_remote: MagicMock,
+        mock_pull: MagicMock,
+        mock_build: MagicMock,
+        mock_push: MagicMock,
     ) -> None:
         """Test manage_docker_image when image exists locally."""
-        mock_run.return_value = MagicMock(returncode=0)
-        build.manage_docker_image("tag", "Dockerfile", [], "context", None)
-        mock_run.assert_called_once_with(
-            ["docker", "image", "inspect", "tag"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        mock_log_info.assert_any_call("Image %s already exists locally.", "tag")
+        mock_check_local.return_value = True
+        build.manage_docker_image("tag", "Dockerfile", [], "context", False)
+        mock_check_local.assert_called_once_with("tag")
+        mock_check_remote.assert_not_called()
+        mock_pull.assert_not_called()
+        mock_build.assert_not_called()
+        mock_push.assert_not_called()
 
-    @patch("builtins.print")
-    @patch("subprocess.run")
+    @patch("scripts.docker.build.push_image_to_registry")
+    @patch("scripts.docker.build.build_image")
+    @patch("scripts.docker.build.pull_image_from_registry")
+    @patch("scripts.docker.build.check_if_image_exists_in_remote_registry")
+    @patch("scripts.docker.build.check_if_image_exists_locally")
     def test_manage_docker_image_exists_remotely(
-        self, mock_run: MagicMock, mock_print: MagicMock
+        self,
+        mock_check_local: MagicMock,
+        mock_check_remote: MagicMock,
+        mock_pull: MagicMock,
+        mock_build: MagicMock,
+        mock_push: MagicMock,
     ) -> None:
-        """Test manage_docker_image when image exists remotely."""
-        mock_run.side_effect = [
-            MagicMock(returncode=1),
-            MagicMock(returncode=0),
-            MagicMock(returncode=0, stdout="pulled", stderr="pull warning"),
-        ]
-        build.manage_docker_image("tag", "Dockerfile", [], "context", None)
-        self.assertEqual(mock_run.call_count, 3)
-        expected_calls = [
-            call("Pulling image: tag...", file=sys.stderr, end="", flush=True),
-            call(" [OK]", file=sys.stderr),
-        ]
-        mock_print.assert_has_calls(expected_calls)
+        """Test manage_docker_image when image exists remotely and is pulled."""
+        mock_check_local.return_value = False
+        mock_check_remote.return_value = True
+        build.manage_docker_image("tag", "Dockerfile", [], "context", False)
+        mock_check_local.assert_called_once_with("tag")
+        mock_check_remote.assert_called_once_with("tag")
+        mock_pull.assert_called_once_with("tag")
+        mock_build.assert_not_called()
+        mock_push.assert_not_called()
 
-    @patch("builtins.print")
-    @patch("subprocess.run")
+    @patch("scripts.docker.build.push_image_to_registry")
+    @patch("scripts.docker.build.build_image")
+    @patch("scripts.docker.build.pull_image_from_registry")
+    @patch("scripts.docker.build.check_if_image_exists_in_remote_registry")
+    @patch("scripts.docker.build.check_if_image_exists_locally")
     def test_manage_docker_image_build_and_push_success(
-        self, mock_run: MagicMock, mock_print: MagicMock
+        self,
+        mock_check_local: MagicMock,
+        mock_check_remote: MagicMock,
+        mock_pull: MagicMock,
+        mock_build: MagicMock,
+        mock_push: MagicMock,
     ) -> None:
-        """Test manage_docker_image builds and pushes successfully."""
-        mock_run.side_effect = [
-            MagicMock(returncode=1),
-            MagicMock(returncode=1),
-            MagicMock(returncode=0, stdout="built", stderr="build warning"),
-            MagicMock(returncode=0, stdout="pushed", stderr="push warning"),
-        ]
-        build.manage_docker_image("tag", "Dockerfile", ["ARG", "val"], "context", None)
-        self.assertEqual(mock_run.call_count, 4)
-        expected_calls = [
-            call("Building image: tag...", file=sys.stderr, end="", flush=True),
-            call(" [OK]", file=sys.stderr),
-            call("Pushing image: tag...", file=sys.stderr, end="", flush=True),
-            call(" [OK]", file=sys.stderr),
-        ]
-        mock_print.assert_has_calls(expected_calls)
-
-    @patch("builtins.print")
-    @patch("subprocess.run")
-    @patch("logging.warning")
-    def test_manage_docker_image_build_and_push_fail(
-        self, mock_log_warning: MagicMock, mock_run: MagicMock, mock_print: MagicMock
-    ) -> None:
-        """Test manage_docker_image builds and push fails."""
-        mock_run.side_effect = [
-            MagicMock(returncode=1),
-            MagicMock(returncode=1),
-            MagicMock(returncode=0, stdout="built", stderr=""),
-            MagicMock(returncode=1, stderr="push failed"),
-        ]
-        build.manage_docker_image("tag", "Dockerfile", [], "context", None)
-        self.assertEqual(mock_run.call_count, 4)
-        mock_log_warning.assert_any_call(
-            "Failed to push image %s. Continuing with local image.", "tag"
+        """Test manage_docker_image builds and pushes when image does not exist."""
+        mock_check_local.return_value = False
+        mock_check_remote.return_value = False
+        build.manage_docker_image("tag", "Dockerfile", ["ARG", "val"], "context", False)
+        mock_check_local.assert_called_once_with("tag")
+        mock_check_remote.assert_called_once_with("tag")
+        mock_pull.assert_not_called()
+        mock_build.assert_called_once_with(
+            "tag", "Dockerfile", ["ARG", "val"], "context"
         )
-        expected_calls = [
-            call("Building image: tag...", file=sys.stderr, end="", flush=True),
-            call(" [OK]", file=sys.stderr),
-            call("Pushing image: tag...", file=sys.stderr, end="", flush=True),
-            call(" [FAILED]", file=sys.stderr),
-        ]
-        mock_print.assert_has_calls(expected_calls)
+        mock_push.assert_called_once_with("tag")
 
-    @patch("builtins.print")
-    @patch("subprocess.run")
-    def test_manage_docker_image_called_process_error(
-        self, mock_run: MagicMock, mock_print: MagicMock
+    @patch("scripts.docker.build.check_if_image_exists_locally", return_value=False)
+    @patch(
+        "scripts.docker.build.check_if_image_exists_in_remote_registry",
+        return_value=True,
+    )
+    @patch("scripts.docker.build.pull_image_from_registry")
+    def test_manage_docker_image_called_process_error_on_pull(
+        self,
+        mock_pull: MagicMock,
+        unused_mock_check_remote: MagicMock,
+        unused_mock_check_local: MagicMock,
     ) -> None:
-        """Test manage_docker_image with CalledProcessError."""
+        """Test manage_docker_image with CalledProcessError during pull."""
+        error = subprocess.CalledProcessError(2, "cmd")
+        error.stdout = "out"
+        error.stderr = "err"
+        mock_pull.side_effect = error
+        with self.assertRaises(SysExitCalled):
+            build.manage_docker_image("tag", "Dockerfile", [], "context", False)
+        self.mock_sys_exit.assert_called_once_with(2)
+
+    @patch("scripts.docker.build.check_if_image_exists_locally", return_value=False)
+    @patch(
+        "scripts.docker.build.check_if_image_exists_in_remote_registry",
+        return_value=False,
+    )
+    @patch("scripts.docker.build.build_image")
+    def test_manage_docker_image_called_process_error_on_build(
+        self,
+        mock_build: MagicMock,
+        unused_mock_check_remote: MagicMock,
+        unused_mock_check_local: MagicMock,
+    ) -> None:
+        """Test manage_docker_image with CalledProcessError during build."""
         error = subprocess.CalledProcessError(1, "cmd")
         error.stdout = "out"
         error.stderr = "err"
-        mock_run.side_effect = error
+        mock_build.side_effect = error
         with self.assertRaises(SysExitCalled):
-            build.manage_docker_image("tag", "Dockerfile", [], "context", None)
+            build.manage_docker_image("tag", "Dockerfile", [], "context", False)
         self.mock_sys_exit.assert_called_once_with(1)
-        mock_print.assert_called_once_with(" [FAILED]", file=sys.stderr)
 
-    @patch("subprocess.run", side_effect=subprocess.CalledProcessError(0, "cmd"))
-    def test_manage_docker_image_called_process_error_zero_exit(
-        self, unused_mock_run: MagicMock
+    @patch("scripts.docker.build.check_if_image_exists_locally", return_value=False)
+    @patch(
+        "scripts.docker.build.check_if_image_exists_in_remote_registry",
+        return_value=False,
+    )
+    @patch("scripts.docker.build.build_image")
+    def test_manage_docker_image_called_process_error_with_zero_exit_code(
+        self,
+        mock_build: MagicMock,
+        unused_mock_check_remote: MagicMock,
+        unused_mock_check_local: MagicMock,
     ) -> None:
-        """Test manage_docker_image with CalledProcessError with exit code 0."""
+        """Test manage_docker_image with CalledProcessError and exit code 0."""
+        error = subprocess.CalledProcessError(0, "cmd")
+        mock_build.side_effect = error
         with self.assertRaises(SysExitCalled):
-            build.manage_docker_image("tag", "Dockerfile", [], "context", None)
+            build.manage_docker_image("tag", "Dockerfile", [], "context", False)
         self.mock_sys_exit.assert_called_once_with(1)
 
-    @patch("subprocess.run", side_effect=FileNotFoundError)
+    @patch("scripts.docker.build.check_if_image_exists_locally", return_value=False)
+    @patch(
+        "scripts.docker.build.check_if_image_exists_in_remote_registry",
+        return_value=False,
+    )
+    @patch("scripts.docker.build.build_image", side_effect=FileNotFoundError)
     def test_manage_docker_image_file_not_found_error(
-        self, unused_mock_run: MagicMock
+        self,
+        unused_mock_build: MagicMock,
+        unused_mock_check_remote: MagicMock,
+        unused_mock_check_local: MagicMock,
     ) -> None:
         """Test manage_docker_image with FileNotFoundError."""
         with self.assertRaises(SysExitCalled):
-            build.manage_docker_image("tag", "Dockerfile", [], "context", None)
+            build.manage_docker_image("tag", "Dockerfile", [], "context", False)
         self.mock_sys_exit.assert_called_once_with(1)
+
+    @patch("scripts.docker.build.build_image")
+    @patch("scripts.docker.build.check_if_image_exists_locally")
+    def test_manage_docker_image_local_mode_exists_locally(
+        self, mock_check_local: MagicMock, mock_build: MagicMock
+    ) -> None:
+        """Test manage_docker_image in local mode when image exists locally."""
+        mock_check_local.return_value = True
+        build.manage_docker_image("tag", "Dockerfile", [], "context", True)
+        mock_check_local.assert_called_once_with("tag")
+        mock_build.assert_not_called()
+
+    @patch("scripts.docker.build.push_image_to_registry")
+    @patch("scripts.docker.build.build_image")
+    @patch("scripts.docker.build.pull_image_from_registry")
+    @patch("scripts.docker.build.check_if_image_exists_in_remote_registry")
+    @patch("scripts.docker.build.check_if_image_exists_locally")
+    def test_manage_docker_image_local_mode_builds(
+        self,
+        mock_check_local: MagicMock,
+        mock_check_remote: MagicMock,
+        mock_pull: MagicMock,
+        mock_build: MagicMock,
+        mock_push: MagicMock,
+    ) -> None:
+        """Test manage_docker_image in local mode builds, does not push."""
+        mock_check_local.return_value = False
+        build.manage_docker_image("tag", "Dockerfile", ["ARG", "val"], "context", True)
+        mock_check_local.assert_called_once_with("tag")
+        mock_build.assert_called_once_with(
+            "tag", "Dockerfile", ["ARG", "val"], "context"
+        )
+        mock_check_remote.assert_not_called()
+        mock_pull.assert_not_called()
+        mock_push.assert_not_called()
 
     @patch("os.path.exists", return_value=False)
     def test_process_image_dockerfile_not_found(
@@ -707,72 +774,6 @@ class TestBuildScript(unittest.TestCase):
         with self.assertRaises(SysExitCalled):
             build.main()
         self.mock_sys_exit.assert_called_once_with(1)
-
-    @patch("subprocess.run")
-    def test_manage_docker_image_local_mode_exists_locally(
-        self, mock_run: MagicMock
-    ) -> None:
-        """Test manage_docker_image in local mode when image exists locally."""
-        # First call to 'docker image inspect' returns 0, so image exists.
-        mock_run.return_value = MagicMock(returncode=0)
-        build.manage_docker_image("tag", "Dockerfile", [], "context", True)
-        # inspect is called, and since it returns 0, nothing else is called.
-        mock_run.assert_called_once_with(
-            ["docker", "image", "inspect", "tag"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-
-    @patch("builtins.print")
-    @patch("subprocess.run")
-    def test_manage_docker_image_local_mode_builds(
-        self, mock_run: MagicMock, mock_print: MagicMock
-    ) -> None:
-        """
-        Test manage_docker_image in local mode builds but does not check remote or push.
-        """
-        # First call to 'docker image inspect' returns 1 (not found).
-        # Second call is the build, which succeeds.
-        mock_run.side_effect = [
-            MagicMock(returncode=1),  # image inspect
-            MagicMock(returncode=0, stdout="built", stderr=""),  # build
-        ]
-        build.manage_docker_image("tag", "Dockerfile", ["ARG", "val"], "context", True)
-
-        expected_calls = [
-            call(
-                ["docker", "image", "inspect", "tag"],
-                capture_output=True,
-                text=True,
-                check=False,
-            ),
-            call(
-                [
-                    "docker",
-                    "buildx",
-                    "build",
-                    "--tag",
-                    "tag",
-                    "--file",
-                    "Dockerfile",
-                    "--build-arg",
-                    "ARG=val",
-                    "context",
-                ],
-                check=True,
-                text=True,
-                capture_output=True,
-            ),
-        ]
-        mock_run.assert_has_calls(expected_calls)
-        self.assertEqual(mock_run.call_count, 2)
-
-        expected_print_calls = [
-            call("Building image: tag...", file=sys.stderr, end="", flush=True),
-            call(" [OK]", file=sys.stderr),
-        ]
-        mock_print.assert_has_calls(expected_print_calls)
 
 
 class TestDockerWrapperCommands(unittest.TestCase):

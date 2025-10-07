@@ -23,6 +23,7 @@ exclude: (?x)^(
   version\.txt|
   CHANGELOG\.md|
   google_internal/LATEST_RELEASE\.md|
+  google_internal/attestation/.*\.py|
   CONTRIBUTING\.md|
   LICENSE
   )$

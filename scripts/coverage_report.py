@@ -328,20 +328,29 @@ def main() -> None:
     Main function, parses arguments and run generate_lcov_report.
     """
     parser = argparse.ArgumentParser(
-        description="Generate unit test coverage report for python code."
+        description="Generate unit test coverage report for Bazel workspace.",
+        add_help=False,
+    )
+
+    parser.add_argument(
+        "-h",
+        "--help",
+        action="help",
+        default=argparse.SUPPRESS,
+        help="Show this help message and exit.",
     )
 
     parser.add_argument(
         "--target",
         type=str,
-        help="Bazel test target",
+        help="Bazel test target.",
         default="//...",
     )
     parser.add_argument(
         "--lines",
         type=float,
         help=(
-            "Threshold for the line coverage report to pass (in percentage)."
+            "Threshold for the line coverage report to pass (in percentage). "
             "If any line coverage for a file is below threshold, script fails."
         ),
         default=100.0,
@@ -350,7 +359,7 @@ def main() -> None:
         "--branch",
         type=float,
         help=(
-            "Threshold for the branch coverage report to pass (in percentage)."
+            "Threshold for the branch coverage report to pass (in percentage). "
             "If any branch coverage for a file is below threshold, script fails."
         ),
         default=100.0,

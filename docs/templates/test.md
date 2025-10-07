@@ -1,16 +1,15 @@
 # test
 
-The `test` script is an integration test for the devkit's containerized build environments. Its main
-purpose is to build a `build-env` Docker image and then validate its integrity and functionality.
+The `test` script is a validation tool for DevKit templates that is executed after a project is
+bootstrapped. It validates build reproducibility and test execution by running a series of checks in
+two separate environments.
 
-When executed, the script first builds the specified container image. It then runs a test suite
-(`test_entrypoint`) inside the newly built container. This test suite performs a series of critical
-checks, including: 1. Building all targets in the workspace using Bazel (`bazel build //...`). 2.
-Verifying file integrity using the `check_checksums` tool. 3. Running all tests within the workspace
-(`bazel test //...`).
+First, it builds the DevKit build environment and runs the validation checks from within that
+container. The checks include building the project, verifying file integrity, and running tests.
 
-This script is primarily intended for testing the devkit itself and ensuring that changes to the
-build environment do not cause regressions.
+Second, it runs the same set of validation checks on the host system. This ensures that the
+bootstrapped project is buildable and functional both within the DevKit containers and with a native
+Bazel installation.
 
 ## Usage
 

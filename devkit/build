@@ -24,31 +24,22 @@ source "${SCRIPTS}/lib_logging.sh"
 
 function usage() {
   local -i exitval=${1-1}
-  cat &>/dev/stdout << USAGE
-usage: $(basename "${BASH_SOURCE[0]}") [--help] [COMMAND] [ARG]...
+  cat << USAGE
+usage: $(basename "${BASH_SOURCE[0]}") [-h] [COMMAND ...]
 
 Runs a command inside the build environment container.
-
-This script provides a containerized build environment with tools like Bazel,
-gcloud, buildifier, jq, and more.
 If no command is provided, it starts an interactive bash session.
 
-All arguments are passed on to the command executed inside the container.
-
-Options:
-  --help                Show this help message and exit.
+options:
+  -h, --help            Show this help message and exit.
 USAGE
   exit ${exitval}
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --help)
-      usage 0
-      ;;
-    *)
-      break
-      ;;
+    -h|--help) usage 0 ;;
+    *) break ;;
   esac
   shift
 done

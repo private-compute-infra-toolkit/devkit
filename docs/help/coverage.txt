@@ -1,0 +1,14 @@
+usage: coverage_report.py [-h] [--target TARGET] [--lines LINES]
+                          [--branch BRANCH]
+
+Generate unit test coverage report for Bazel workspace.
+
+options:
+  -h, --help       Show this help message and exit.
+  --target TARGET  Bazel test target.
+  --lines LINES    Threshold for the line coverage report to pass (in
+                   percentage). If any line coverage for a file is below
+                   threshold, script fails.
+  --branch BRANCH  Threshold for the branch coverage report to pass (in
+                   percentage). If any branch coverage for a file is below
+                   threshold, script fails.

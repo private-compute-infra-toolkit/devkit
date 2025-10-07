@@ -26,11 +26,15 @@ source "${SCRIPTS}/lib_logging.sh"
 
 function usage() {
   local -i exitval=${1-1}
-  cat <<USAGE
-usage:
-  $0 <options>
-    --server                   run in server mode
-    --ephemeral                run in ephemeral mode
+  cat << USAGE
+usage: $(basename "${BASH_SOURCE[0]}") [-h] [--server] [--ephemeral]
+
+Runs VSCode in the container.
+
+options:
+  -h, --help            Show this help message and exit.
+  --server              Run in server mode.
+  --ephemeral           Run in ephemeral mode.
 USAGE
   exit ${exitval}
 }

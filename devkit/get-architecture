@@ -25,12 +25,12 @@ readonly ARCH_AARCH64=arm64
 function usage() {
   declare -r -i exitval=${1-1}
   cat <<USAGE
-usage: $(basename "${BASH_SOURCE[0]}") [OPTION]...
+usage: $(basename "${BASH_SOURCE[0]}") [-h]
 
-  Return the CPU architecture (e.g.: ${ARCH_AMD64} or ${ARCH_AARCH64}).
+Return the CPU architecture (e.g.: ${ARCH_AMD64} or ${ARCH_AARCH64}).
 
-  Options:
-    -h, --help                Show this help message and exit.
+options:
+  -h, --help            Show this help message and exit.
 USAGE
   exit ${exitval}
 }

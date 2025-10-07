@@ -1,4 +1,8 @@
-usage:
-  devkit/vscode_ide <options>
-    --server                   run in server mode
-    --ephemeral                run in ephemeral mode
+usage: vscode_ide [-h] [--server] [--ephemeral]
+
+Runs VSCode in the container.
+
+options:
+  -h, --help            Show this help message and exit.
+  --server              Run in server mode.
+  --ephemeral           Run in ephemeral mode.

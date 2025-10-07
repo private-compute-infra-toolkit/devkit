@@ -148,9 +148,18 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(
         description=(
-            "Generates Bazel Build Event Protocol (BEP) JSON files"
+            "Generates Bazel Build Event Protocol (BEP) JSON files "
             "for a list of targets."
-        )
+        ),
+        add_help=False,
+    )
+
+    parser.add_argument(
+        "-h",
+        "--help",
+        action="help",
+        default=argparse.SUPPRESS,
+        help="Show this help message and exit.",
     )
 
     # If target is not provided BEP will be generated for all targets (bazel fetch //...)

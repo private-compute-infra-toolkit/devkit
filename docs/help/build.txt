@@ -1,12 +1,7 @@
-usage: build [--help] [COMMAND] [ARG]...
+usage: build [-h] [COMMAND ...]
 
 Runs a command inside the build environment container.
-
-This script provides a containerized build environment with tools like Bazel,
-gcloud, buildifier, jq, and more.
 If no command is provided, it starts an interactive bash session.
 
-All arguments are passed on to the command executed inside the container.
-
-Options:
-  --help                Show this help message and exit.
+options:
+  -h, --help            Show this help message and exit.

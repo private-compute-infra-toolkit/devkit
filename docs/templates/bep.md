@@ -6,9 +6,8 @@ execution. This data is invaluable for debugging build failures, analyzing depen
 understanding build performance.
 
 The tool operates by running the `bazel fetch` or `bazel build` command for specified targets within
-the containerized `build-env`. This ensures that the build analysis is performed in a consistent and
-reproducible environment. The output is a collection of JSON files, one for each target, which can
-be consumed by other analysis and visualization tools.
+the containerized `build-env`. The output is a collection of JSON files, one for each target, which
+can be consumed by other analysis and visualization tools.
 
 If no specific targets are provided, the tool will analyze all targets within the workspace
 (`//...`).

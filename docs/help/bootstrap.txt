@@ -1,10 +1,10 @@
 usage: bootstrap.py [-h] --template TEMPLATE [--templates-root TEMPLATES_ROOT]
                     [--args [ARGS ...]]
 
-Bootstraps the development environment.
+Bootstraps a new project from a template.
 
 options:
-  -h, --help            show this help message and exit
+  -h, --help            Show this help message and exit.
   --template TEMPLATE   The name of the template to use.
   --templates-root TEMPLATES_ROOT
                         The root directory for templates lookup.

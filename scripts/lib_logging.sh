@@ -27,10 +27,6 @@ fi
 SCRIPT_NAME=$(basename "$0")
 readonly SCRIPT_NAME
 
-# copybara: strip_begin
-source "${SCRIPTS}/../google_internal/tools/metrics/set_variables.sh"
-# copybara: strip_end
-
 readonly DEVKIT_LOGS_DIR="${HOME}/.devkit/logs"
 mkdir -p "${DEVKIT_LOGS_DIR}"
 
