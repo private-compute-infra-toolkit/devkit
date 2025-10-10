@@ -11,9 +11,6 @@
             "BASE": "tool-env"
         }
     },
-    "build-env-alpine": {
-        "deps": {}
-    },
     "build-env-debian": {
         "deps": {}
     },

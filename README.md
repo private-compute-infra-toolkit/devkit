@@ -55,7 +55,7 @@ devkit/build
 ```
 
 To start other variants, use the corresponding `devkit/build-<variant>` script. Supported variants
-include `alpine`, `debian` and `rockylinux`.
+include `debian` and `rockylinux`.
 
 ```bash
 devkit/build-debian
