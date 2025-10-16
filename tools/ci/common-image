@@ -1,0 +1,59 @@
+#!/bin/bash
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+set -o xtrace
+export TZ=Etc/UTC
+export PS4='+\t $(basename ${BASH_SOURCE[0]}):${LINENO} ' # xtrace prompt
+
+function kokoro::logs() {
+  if [[ -v KOKORO_ARTIFACTS_DIR ]]; then
+    cp -r "${HOME}/.devkit/logs" "${KOKORO_ARTIFACTS_DIR}"
+  fi
+}
+trap kokoro::logs EXIT
+
+if [[ -n ${KOKORO_ARTIFACTS_DIR:-} ]]; then
+  cd "${KOKORO_ARTIFACTS_DIR}/git/devkit"
+fi
+
+readonly DEVKIT="${PWD}"
+
+APP="$(basename "${BASH_SOURCE[0]}")"
+readonly APP
+
+readonly SUFFIX="${APP#image-*}"
+declare -a IMAGES=()
+if [[ ${SUFFIX} == vscode ]]; then
+  IMAGES+=(vscode-server vscode-ide)
+else
+  IMAGES+=("${SUFFIX}-ide")
+fi
+
+for img in "${IMAGES[@]}"; do
+  "${DEVKIT}/scripts/docker/build.py" "${img}" --search-path "${DEVKIT}/images"
+done
+
+#
+# validate the operation of the devkit/dev script
+#
+declare -i -r exit_status=2
+if "${DEVKIT}/devkit/dev" bash -c "exit ${exit_status}" || [[ $? -eq ${exit_status} ]]; then
+  true
+else
+  printf "%s failed. Expected exit status %d\n" "${DEVKIT}/dev" ${exit_status}
+  exit 1
+fi

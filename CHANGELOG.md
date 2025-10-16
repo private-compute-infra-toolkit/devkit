@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.10.0 (2025-10-16)
+
+
+### GitHub
+
+* **github:** Adding gh actions for tools/ci
+
+
+### Bug Fixes
+
+* Avoid reuse of kokoro shell namespace
+* Execute gitlint in debug mode
+
 ## 1.9.0 (2025-10-10)
 
 

@@ -1,0 +1,125 @@
+#!/bin/bash
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+set -o xtrace
+
+function kokoro::logs() {
+  if [[ -v KOKORO_ARTIFACTS_DIR ]]; then
+    cp -r "${HOME}/.devkit/logs" "${KOKORO_ARTIFACTS_DIR}"
+  fi
+}
+trap kokoro::logs EXIT
+
+declare SUFFIX
+declare -i DEBUG=0
+
+function usage() {
+  local -i exitval=${1-1}
+  cat <<USAGE
+usage:
+  $0 <options>
+    --suffix <string>          image suffix
+    --debug                    run in debug mode
+USAGE
+  exit ${exitval}
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --suffix)
+      SUFFIX="$2"
+      shift 2 || usage
+      ;;
+    --debug)
+      DEBUG=1
+      shift
+      ;;
+    -h | --help) usage 0 ;;
+    *)
+      printf "unrecognized arg: %s\n" "$1"
+      usage
+      ;;
+  esac
+done
+
+function kokoro::set_devkit() {
+  set +o nounset
+  if [[ -v KOKORO_ARTIFACTS_DIR ]]; then
+    DEVKIT="${KOKORO_ARTIFACTS_DIR}/git/devkit"
+  elif [[ -z ${DEVKIT} ]]; then
+    DEVKIT="$(git rev-parse --show-toplevel)"
+  fi
+  export DEVKIT
+  set -o nounset
+}
+
+kokoro::set_devkit
+cd "${DEVKIT}"
+
+declare -i num_templates
+num_templates=$(grep -c '[^[:space:]]' "${DEVKIT}/templates.txt")
+declare -i counter=0
+
+# We are using file descriptor 3 to read the templates, so that the commands
+# executed inside the loop do not consume the input from the file.
+while IFS= read -r -u 3 template_args || [[ -n "${template_args}" ]]; do
+
+  if [[ -z "${template_args}" ]]; then
+    continue
+  fi
+  counter+=1
+
+  declare WORKSPACE=/tmp/workspace
+  if [[ ${DEBUG} -ne 1 ]]; then
+    WORKSPACE="$(mktemp --directory)"
+  fi
+
+  function kokoro::cleanup() {
+    if [[ ${DEBUG} -ne 1 ]]; then
+      "devkit/build${SUFFIX}" bash -c "bazel clean || true"
+      rm -rf "${WORKSPACE}"
+    fi
+  }
+  rm -rf "${WORKSPACE}"
+  mkdir -p "${WORKSPACE}"
+  trap kokoro::cleanup RETURN
+  cd "${WORKSPACE}"
+
+  ln -s "${DEVKIT}" "${WORKSPACE}/.devkit"
+  ln -s .devkit/devkit devkit
+
+  # shellcheck disable=SC2086
+  devkit/bootstrap ${template_args}
+
+  git init
+  git add .
+  git commit -m "chore: Initial commit" -m "Seeting-up a test repo."
+
+  devkit/test --suffix "${SUFFIX}"
+
+  if [[ -n "$(git status --porcelain)" ]]; then
+    echo "Unexpected git change in the instantiated template. Add them to the template."
+    git diff
+    exit 1
+  fi
+
+done 3< "${DEVKIT}/templates.txt"
+
+if [[ ${counter} -ne ${num_templates} ]]; then
+  echo "error: The number of processed templates (${counter}) does not match the number of templates in templates.txt (${num_templates})." >&2
+  exit 1
+fi

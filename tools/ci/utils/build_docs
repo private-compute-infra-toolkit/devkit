@@ -1,0 +1,91 @@
+#!/bin/bash
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+set -o xtrace
+
+export TZ=Etc/UTC
+export PS4='+\t $(basename ${BASH_SOURCE[0]}):${LINENO} '
+
+declare -i DEBUG=0
+
+function usage() {
+  local -i exitval=${1-1}
+  cat <<USAGE
+usage:
+  $0 <options>
+    --debug                    run in debug mode
+USAGE
+  exit ${exitval}
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --debug)
+      DEBUG=1
+      shift
+      ;;
+    -h | --help) usage 0 ;;
+    *)
+      printf "unrecognized arg: %s\n" "$1"
+      usage
+      ;;
+  esac
+done
+
+mkdir -p docs/help
+declare -a tools=(
+  bep
+  bootstrap
+  build
+  check_checksums
+  dev
+  test
+  vscode_ide
+  get-architecture
+  coverage
+)
+
+for tool in "${tools[@]}"; do
+  if ! devkit/"${tool}" --help >"docs/help/${tool}.txt" 2>/dev/null; then
+    printf "error: failure executing %s --help\n" "devkit/${tool}"
+  fi
+done
+
+if [[ -n "$(git status docs/help --porcelain)" ]]; then
+  echo "Unexpected git change in docs help."
+  git diff docs/help
+  exit 1
+fi
+
+declare -r DEVKIT="${PWD}"
+declare DOCS=/tmp/docs
+if [[ ${DEBUG} -ne 1 ]]; then
+  DOCS="$(mktemp --directory)"
+fi
+rm -rf "${DOCS}"
+mkdir "${DOCS}"
+pushd "${DOCS}" >/dev/null
+ln -s "${DEVKIT}" .devkit
+ln -s .devkit/devkit devkit
+devkit/bootstrap --templates-root .devkit --template docs
+if [[ -n "${KOKORO_ARTIFACTS_DIR:-}" ]]; then
+  cp -r "${DOCS}"/templates "${KOKORO_ARTIFACTS_DIR}"/docs
+fi
+if [[ ${DEBUG} -ne 1 ]]; then
+  rm -rf "${DOCS}"
+fi
+popd >/dev/null

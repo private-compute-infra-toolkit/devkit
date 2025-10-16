@@ -15,11 +15,15 @@
 
 set -o errexit
 set -o nounset
+set -o xtrace
+export TZ=Etc/UTC
+export PS4='+\t $(basename ${BASH_SOURCE[0]}):${LINENO} ' # xtrace prompt
 
-DEVKIT="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
-readonly DEVKIT
+KOKORO="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
+readonly KOKORO
 
-readonly SCRIPTS="${DEVKIT}/../scripts"
-source "${SCRIPTS}/lib_logging.sh"
+APP="$(basename "${BASH_SOURCE[0]}")"
+readonly APP
+SUFFIX="${APP#build*}"
 
-"${SCRIPTS}/build_and_run" dev-env gemini "${GEMINI_MODEL_ARGS[@]}" "$@"
+"${KOKORO}/common-build" --suffix "${SUFFIX}" "$@"

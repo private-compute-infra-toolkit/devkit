@@ -15,11 +15,15 @@
 
 set -o errexit
 set -o nounset
+set -o xtrace
 
-DEVKIT="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
-readonly DEVKIT
+export TZ=Etc/UTC
+export PS4='+\t $(basename ${BASH_SOURCE[0]}):${LINENO} '
 
-readonly SCRIPTS="${DEVKIT}/../scripts"
-source "${SCRIPTS}/lib_logging.sh"
+ACTUAL="$(devkit/get-architecture)"
+readonly ACTUAL
 
-"${SCRIPTS}/build_and_run" dev-env gemini "${GEMINI_MODEL_ARGS[@]}" "$@"
+if [[ ${ACTUAL} != amd64 ]] && [[ ${ACTUAL} != arm64 ]]; then
+  printf "devkit/get-architecture test failed!\n" >/dev/stderr
+  exit 1
+fi

@@ -15,11 +15,17 @@
 
 set -o errexit
 set -o nounset
+set -o xtrace
 
-DEVKIT="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
-readonly DEVKIT
+export TZ=Etc/UTC
+export PS4='+\t $(basename ${BASH_SOURCE[0]}):${LINENO} '
 
-readonly SCRIPTS="${DEVKIT}/../scripts"
-source "${SCRIPTS}/lib_logging.sh"
+EXPECTED="DUMMY"
+ACTUAL="$(echo 'DUMMY' | devkit/build cat)"
 
-"${SCRIPTS}/build_and_run" dev-env gemini "${GEMINI_MODEL_ARGS[@]}" "$@"
+if [[ "${ACTUAL}" != "${EXPECTED}" ]]; then
+  echo "Standard input test failed!"
+  echo "Expected: ${EXPECTED}"
+  echo "Got: ${ACTUAL}"
+  exit 1
+fi
