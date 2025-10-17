@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.11.0 (2025-10-17)
+
+
+### Dependencies
+
+* **deps:** Include libxml2 in build-env-debian image
+* **deps:** Upgrade gemini-cli to 0.9.0
+
+
+### Bug Fixes
+
+* Add template bootstrapping tests to tools/ci/pre-commit
+* Ensure build.py handles empty string values in registry
+* Remove template bootstrapping tests from tools/ci/pre-commit
+* Set default value for SUFFIX
+* Support comment lines in templates.txt
+
 ## 1.10.0 (2025-10-16)
 
 

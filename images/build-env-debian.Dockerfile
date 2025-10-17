@@ -30,6 +30,7 @@ FROM ${GOLANG_IMAGE} AS golang-image
 FROM ${DEBIAN_IMAGE}
 
 ARG BAZELISK_VERSION=v1.27.0
+ARG LIBXML2_VERSION=2.*
 
 COPY --from=docker-image /usr/local/bin/docker /usr/local/bin/docker
 ENV PATH="/usr/local/bin:${PATH}"
@@ -40,7 +41,12 @@ COPY --from=golang-image /usr/local/go/ /usr/local/go/
 ENV PATH="/usr/local/go/bin:${PATH}"
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates git python3 sudo \
+ && apt-get install -y --no-install-recommends \
+ ca-certificates \
+ git \
+ libxml2=${LIBXML2_VERSION} \
+ python3 \
+ sudo \
  && rm -rf /var/lib/apt/lists/*
 
 ARG GOBIN=/usr/local/bin

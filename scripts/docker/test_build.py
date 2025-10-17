@@ -167,6 +167,20 @@ class TestBuildScript(unittest.TestCase):
         self.assertEqual(build.REPO, "")
 
     @patch("os.path.exists", return_value=True)
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data='{"docker": {"registry": '
+        '{"host": "", "project": "", "repository": ""}}}',
+    )
+    def test_load_config_with_empty_strings(
+        self, unused_mock_file: MagicMock, unused_mock_exists: MagicMock
+    ) -> None:
+        """Test load_config with a registry object with empty strings."""
+        build.load_config("dummy/path/devkit.json")
+        self.assertEqual(build.REPO, "")
+
+    @patch("os.path.exists", return_value=True)
     @patch("builtins.open", new_callable=mock_open, read_data="invalid json")
     @patch("logging.error")
     def test_load_config_json_decode_error(

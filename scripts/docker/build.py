@@ -47,24 +47,27 @@ def find_project_root() -> Optional[str]:
 def load_config(config_path: str) -> None:
     """Loads the devkit.json config file."""
     global REPO
-    if os.path.exists(config_path):
-        with open(config_path, "r", encoding="utf-8") as f:
-            try:
-                config = json.load(f)
-                if "docker" in config and "registry" in config["docker"]:
-                    registry = config["docker"]["registry"]
-                    if (
-                        "host" in registry
-                        and "project" in registry
-                        and "repository" in registry
-                    ):
-                        REPO = (
-                            f"{registry['host']}/{registry['project']}/"
-                            f"{registry['repository']}"
-                        )
-            except json.JSONDecodeError as e:
-                logging.error("Could not decode %s: %s", config_path, e)
-                sys.exit(1)
+    if not os.path.exists(config_path):
+        logging.info("devkit.json config file not found: %s", config_path)
+        return
+    with open(config_path, "r", encoding="utf-8") as f:
+        try:
+            config = json.load(f)
+            if "docker" in config and "registry" in config["docker"]:
+                registry = config["docker"]["registry"]
+                if (
+                    "host" in registry
+                    and "project" in registry
+                    and "repository" in registry
+                ):
+                    h = registry["host"]
+                    p = registry["project"]
+                    r = registry["repository"]
+                    if h and p and r:
+                        REPO = f"{h}/{p}/{r}"
+        except json.JSONDecodeError as e:
+            logging.error("Could not decode %s: %s", config_path, e)
+            sys.exit(1)
 
 
 class ImageConfig(TypedDict):
@@ -146,15 +149,12 @@ def manage_docker_image(
     try:
         if check_if_image_exists_locally(tag):
             return
-
         if local_image_mode:
             build_image(tag, dockerfile_path, build_args_list, context_path)
             return
-
         if check_if_image_exists_in_remote_registry(tag):
             pull_image_from_registry(tag)
             return
-
         build_image(tag, dockerfile_path, build_args_list, context_path)
         push_image_to_registry(tag)
 
