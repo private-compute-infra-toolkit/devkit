@@ -1,0 +1,21 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches:
+      - main
+      - release-*
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Pre-commit checks
+      run: tools/ci/pre-commit
+
+    - name: Build and small tests
+      run: tools/ci/build-debian
