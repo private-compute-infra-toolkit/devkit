@@ -147,6 +147,7 @@ def main() -> None:
     and stored in a directory named 'bazel-bep'.
     """
     parser = argparse.ArgumentParser(
+        prog="bep",
         description=(
             "Generates Bazel Build Event Protocol (BEP) JSON files "
             "for a list of targets."

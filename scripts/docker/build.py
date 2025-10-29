@@ -132,7 +132,7 @@ def manage_docker_image(
     local_image_mode: Optional[bool],
 ) -> None:
     """
-    If local_image_mode is true:
+    If repo is not defined or local_image_mode is true:
         Checks if a Docker image exists and if not, it builds it.
     Otherwise:
         Checks if a Docker image exists, pulls it if available in registry,
@@ -149,7 +149,9 @@ def manage_docker_image(
     try:
         if check_if_image_exists_locally(tag):
             return
-        if local_image_mode:
+        if not REPO or local_image_mode:
+            if not REPO:
+                logging.warning("Docker registry is not defined.")
             build_image(tag, dockerfile_path, build_args_list, context_path)
             return
         if check_if_image_exists_in_remote_registry(tag):

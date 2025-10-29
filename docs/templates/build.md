@@ -22,3 +22,9 @@ You can use the script in two main ways:
 ```
 {% include 'help/build.txt' %}
 ```
+
+## Example
+
+```sh
+devkit/build build bazel build //...
+```

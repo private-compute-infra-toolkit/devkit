@@ -16,3 +16,9 @@ bootstrapping experience regardless of your local machine's setup.
 ```
 {% include 'help/bootstrap.txt' %}
 ```
+
+## Example
+
+```sh
+devkit/bootstrap --template cpp --args toolchain=llvm_bootstrapped
+```

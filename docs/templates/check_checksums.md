@@ -11,3 +11,9 @@ against the expected value and shows any discrepancies in an easy-to-read format
 ```
 {% include 'help/check_checksums.txt' %}
 ```
+
+## Example
+
+```sh
+devkit/check_checksums
+```

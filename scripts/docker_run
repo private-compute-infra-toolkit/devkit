@@ -166,6 +166,7 @@ docker run \
     --volume="${PROJECT_ROOT}:${PROJECT_ROOT}" \
     --workdir="${PWD}" \
     --env="HOME" \
+    --env="GOOGLE_CLOUD_PROJECT" \
     --env="GEMINI_API_KEY" \
     --env="GH_TOKEN" \
     --env="USER=$(id -u -n)" \

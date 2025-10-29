@@ -21,3 +21,9 @@ It supports two modes of operation:
 ```
 {% include 'help/vscode_ide.txt' %}
 ```
+
+## Example
+
+```sh
+devkit/vscode_ide --server
+```

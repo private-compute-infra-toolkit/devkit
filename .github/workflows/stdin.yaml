@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,26 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Build & Test DevKit
-permissions:
-  contents: read
-
+name: stdin-action
 on:
   push:
     branches:
       - main
       - release-*
-  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-
-    - name: Pre-commit checks
-      run: tools/ci/pre-commit
-
-    - name: Build and small tests
-      run: tools/ci/build-debian
+      - uses: actions/checkout@v5
+      - name: Run script
+        run: |
+          set -x
+          echo "Running script ..."
+          tools/ci/utils/tools/ci/utils/test_devkit_stdin.sh

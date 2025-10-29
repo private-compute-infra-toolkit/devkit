@@ -1,5 +1,5 @@
-usage: bootstrap.py [-h] --template TEMPLATE [--templates-root TEMPLATES_ROOT]
-                    [--args [ARGS ...]]
+usage: bootstrap [-h] --template TEMPLATE [--templates-root TEMPLATES_ROOT]
+                 [--args [ARGS ...]]
 
 Bootstraps a new project from a template.
 

@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.12.0 (2025-10-29)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.10.0
+
+
+### Features
+
+* Add GitHub workflow for DevKit build and test
+
+
+### Bug Fixes
+
+* Do not push/pull docker images if docker registry is not defined
+* Pass `GOOGLE_CLOUD_PROJECT` env variable to container
+* **readme:** Fix readme setup numbered list
+* Use bootstrap as the name of the program in usage text
+* Use devkit's script name in its usage text
+
+
+### Documentation
+
+* Refine content of markdown docs and add usage examples
+
 ## 1.11.0 (2025-10-17)
 
 

@@ -16,3 +16,9 @@ Bazel installation.
 ```
 {% include 'help/test.txt' %}
 ```
+
+## Example
+
+```sh
+devkit/test --suffix "-debian"
+```

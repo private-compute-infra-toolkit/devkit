@@ -328,6 +328,7 @@ def main() -> None:
     Main function, parses arguments and run generate_lcov_report.
     """
     parser = argparse.ArgumentParser(
+        prog="coverage",
         description="Generate unit test coverage report for Bazel workspace.",
         add_help=False,
     )

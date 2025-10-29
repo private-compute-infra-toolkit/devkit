@@ -326,6 +326,7 @@ class TestBuildScript(unittest.TestCase):
         mock_push: MagicMock,
     ) -> None:
         """Test manage_docker_image when image exists remotely and is pulled."""
+        build.REPO = "dummy-repo"
         mock_check_local.return_value = False
         mock_check_remote.return_value = True
         build.manage_docker_image("tag", "Dockerfile", [], "context", False)
@@ -351,6 +352,7 @@ class TestBuildScript(unittest.TestCase):
         """Test manage_docker_image builds and pushes when image does not exist."""
         mock_check_local.return_value = False
         mock_check_remote.return_value = False
+        build.REPO = "dummy-repo"
         build.manage_docker_image("tag", "Dockerfile", ["ARG", "val"], "context", False)
         mock_check_local.assert_called_once_with("tag")
         mock_check_remote.assert_called_once_with("tag")
@@ -373,6 +375,7 @@ class TestBuildScript(unittest.TestCase):
         unused_mock_check_local: MagicMock,
     ) -> None:
         """Test manage_docker_image with CalledProcessError during pull."""
+        build.REPO = "dummy-repo"
         error = subprocess.CalledProcessError(2, "cmd")
         error.stdout = "out"
         error.stderr = "err"
@@ -469,6 +472,33 @@ class TestBuildScript(unittest.TestCase):
         mock_build.assert_called_once_with(
             "tag", "Dockerfile", ["ARG", "val"], "context"
         )
+        mock_check_remote.assert_not_called()
+        mock_pull.assert_not_called()
+        mock_push.assert_not_called()
+
+    @patch("scripts.docker.build.push_image_to_registry")
+    @patch("scripts.docker.build.build_image")
+    @patch("scripts.docker.build.pull_image_from_registry")
+    @patch("scripts.docker.build.check_if_image_exists_in_remote_registry")
+    @patch("scripts.docker.build.check_if_image_exists_locally")
+    def test_manage_docker_image_with_no_repo_defined_does_not_pull_push(
+        self,
+        mock_check_local: MagicMock,
+        mock_check_remote: MagicMock,
+        mock_pull: MagicMock,
+        mock_build: MagicMock,
+        mock_push: MagicMock,
+    ) -> None:
+        """
+        Test manage_docker_image does not pull/push image
+        if REPO is not set.
+        """
+        mock_check_local.return_value = False
+        build.REPO = ""
+        build.manage_docker_image("tag", "Dockerfile", [], "context", False)
+        mock_check_local.assert_called_once_with("tag")
+
+        mock_build.assert_called_once()
         mock_check_remote.assert_not_called()
         mock_pull.assert_not_called()
         mock_push.assert_not_called()

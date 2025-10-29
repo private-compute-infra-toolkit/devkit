@@ -17,3 +17,9 @@ interactive `bash` session to work inside the container.
 ```
 {% include 'help/dev.txt' %}
 ```
+
+## Example
+
+```sh
+devkit/dev gemini
+```

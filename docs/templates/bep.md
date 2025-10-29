@@ -17,3 +17,9 @@ If no specific targets are provided, the tool will analyze all targets within th
 ```
 {% include 'help/bep.txt' %}
 ```
+
+## Example
+
+```sh
+devkit/bep --target BUILD --command fetch --output_dir bep_report/
+```

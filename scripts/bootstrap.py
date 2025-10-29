@@ -77,6 +77,7 @@ def copy_and_template(
 def main() -> None:
     """The main function of the bootstrap script."""
     parser = argparse.ArgumentParser(
+        prog="bootstrap",
         description="Bootstraps a new project from a template.",
         formatter_class=argparse.RawTextHelpFormatter,
         add_help=False,

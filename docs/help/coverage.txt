@@ -1,5 +1,4 @@
-usage: coverage_report.py [-h] [--target TARGET] [--lines LINES]
-                          [--branch BRANCH]
+usage: coverage [-h] [--target TARGET] [--lines LINES] [--branch BRANCH]
 
 Generate unit test coverage report for Bazel workspace.
 

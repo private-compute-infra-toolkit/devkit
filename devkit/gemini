@@ -22,4 +22,7 @@ readonly DEVKIT
 readonly SCRIPTS="${DEVKIT}/../scripts"
 source "${SCRIPTS}/lib_logging.sh"
 
-"${SCRIPTS}/build_and_run" dev-env gemini "${GEMINI_MODEL_ARGS[@]}" "$@"
+GEMINI_CLI="gemini"
+GEMINI_ARGS=()
+
+"${SCRIPTS}/build_and_run" dev-env "${GEMINI_CLI}" "${GEMINI_ARGS[@]}" "$@"
