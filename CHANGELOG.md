@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.13.0 (2025-11-04)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.11.3
+
+
+### Features
+
+* **docs:** Improve README.md
+* Remove gcloud related code from build_and_run
+
+
+### Bug Fixes
+
+* Check if docker and docker buildx are installed
+* Fix typo in example devkit/build command
+
 ## 1.12.0 (2025-10-29)
 
 

@@ -32,6 +32,37 @@ REPO = ""
 ARCH = "amd64"
 
 
+def check_docker_installed() -> None:
+    """Checks if Docker is installed and available."""
+    try:
+        subprocess.run(
+            ["docker", "--version"],
+            check=True,
+            capture_output=True,
+        )
+        logging.info("Docker is installed.")
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        logging.error("Docker is not installed or not in PATH. Please install Docker.")
+        sys.exit(1)
+
+
+def check_docker_buildx_installed() -> None:
+    """Checks if Docker Buildx is installed and available."""
+    try:
+        subprocess.run(
+            ["docker", "buildx", "version"],
+            check=True,
+            capture_output=True,
+        )
+        logging.info("Docker Buildx is installed.")
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        logging.error(
+            "Docker Buildx is not installed or not enabled. "
+            "Please install/enable Docker Buildx."
+        )
+        sys.exit(1)
+
+
 def find_project_root() -> Optional[str]:
     """Finds the project root by searching for 'devkit'."""
     current_dir = os.getcwd()
@@ -508,6 +539,9 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+
+    check_docker_installed()
+    check_docker_buildx_installed()
 
     logging.basicConfig(
         level=logging.INFO,

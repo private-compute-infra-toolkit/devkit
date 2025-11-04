@@ -46,6 +46,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ -n "${KOKORO_ARTIFACTS_DIR:-}" ]]; then
+  cd "${KOKORO_ARTIFACTS_DIR}/git/devkit"
+fi
+
 mkdir -p docs/help
 declare -a tools=(
   bep

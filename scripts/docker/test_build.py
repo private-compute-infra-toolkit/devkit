@@ -958,5 +958,72 @@ class TestDockerWrapperCommands(unittest.TestCase):
         )
 
 
+class TestDockerChecks(unittest.TestCase):
+    """Test suite for docker checks."""
+
+    def setUp(self) -> None:
+        """Set up for tests."""
+        # This is to prevent sys.exit from stopping the test runner
+        self.mock_sys_exit = patch("sys.exit", side_effect=SysExitCalled).start()
+
+    def tearDown(self) -> None:
+        """Tear down after tests."""
+        patch.stopall()
+
+    @patch("subprocess.run")
+    def test_check_docker_installed_success(self, mock_run: MagicMock) -> None:
+        """Test check_docker_installed successfully."""
+        mock_run.return_value = MagicMock(returncode=0)
+        build.check_docker_installed()
+
+    @patch(
+        "subprocess.run",
+        side_effect=subprocess.CalledProcessError(1, "cmd"),
+    )
+    def test_check_docker_installed_failure_called_process_error(
+        self, unused_mock_run: MagicMock
+    ) -> None:
+        """Test check_docker_installed with CalledProcessError."""
+        with self.assertRaises(SysExitCalled):
+            build.check_docker_installed()
+        self.mock_sys_exit.assert_called_once_with(1)
+
+    @patch("subprocess.run", side_effect=FileNotFoundError)
+    def test_check_docker_installed_failure_file_not_found(
+        self, unused_mock_run: MagicMock
+    ) -> None:
+        """Test check_docker_installed with FileNotFoundError."""
+        with self.assertRaises(SysExitCalled):
+            build.check_docker_installed()
+        self.mock_sys_exit.assert_called_once_with(1)
+
+    @patch("subprocess.run")
+    def test_check_docker_buildx_installed_success(self, mock_run: MagicMock) -> None:
+        """Test check_docker_buildx_installed successfully."""
+        mock_run.return_value = MagicMock(returncode=0)
+        build.check_docker_buildx_installed()
+
+    @patch(
+        "subprocess.run",
+        side_effect=subprocess.CalledProcessError(1, "cmd"),
+    )
+    def test_check_docker_buildx_installed_failure_called_process_error(
+        self, unused_mock_run: MagicMock
+    ) -> None:
+        """Test check_docker_buildx_installed with CalledProcessError."""
+        with self.assertRaises(SysExitCalled):
+            build.check_docker_buildx_installed()
+        self.mock_sys_exit.assert_called_once_with(1)
+
+    @patch("subprocess.run", side_effect=FileNotFoundError)
+    def test_check_docker_buildx_installed_failure_file_not_found(
+        self, unused_mock_run: MagicMock
+    ) -> None:
+        """Test check_docker_buildx_installed with FileNotFoundError."""
+        with self.assertRaises(SysExitCalled):
+            build.check_docker_buildx_installed()
+        self.mock_sys_exit.assert_called_once_with(1)
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

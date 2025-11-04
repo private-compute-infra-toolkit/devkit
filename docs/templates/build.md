@@ -26,5 +26,5 @@ You can use the script in two main ways:
 ## Example
 
 ```sh
-devkit/build build bazel build //...
+devkit/build bazel build //...
 ```

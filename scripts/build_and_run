@@ -23,13 +23,6 @@ declare -r IMAGES="${SCRIPTS}/../images"
 declare -r IMAGE_NAME="$1"
 shift
 
-CURRENT_DIRECTORY="$(pwd)"
-readonly CURRENT_DIRECTORY
-if [[ -n "${KOKORO_ARTIFACTS_DIR:-}" ]]; then
-  cd "${SCRIPTS}/docker"
-  gcloud auth configure-docker us-docker.pkg.dev --quiet
-fi
-
 BUILD_CMD="${SCRIPTS}/docker/build.py ${IMAGE_NAME} --print-tag --search-path ${IMAGES} --log-file ${DEVKIT_LOG_FILE}"
 readonly BUILD_CMD
 
@@ -39,5 +32,4 @@ IMAGE_URI="$(${BUILD_CMD})" || {
 }
 readonly IMAGE_URI
 
-cd "${CURRENT_DIRECTORY}"
 "${SCRIPTS}/docker_run" "${IMAGE_URI}" "$@"
