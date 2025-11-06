@@ -61,6 +61,7 @@ fi
 devkit/pre-commit
 devkit/gitlint --debug run-hook
 
+tools/ci/utils/build_docs "${FLAGS[@]}"
 tools/ci/utils/test_devkit_docker_run_args.sh
 tools/ci/utils/test_devkit_get_architecture.sh
 tools/ci/utils/test_devkit_stdin.sh

@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.14.0 (2025-11-06)
+
+
+### Dependencies
+
+* **deps:** Update Gemini CLI to version 0.12.0
+
+
+### Features
+
+* Mount system bus socket by default
+
+
+### Documentation
+
+* Update Bazelisk link
+
 ## 1.13.0 (2025-11-04)
 
 

@@ -14,8 +14,8 @@ faster, safer, and easier.
 -   Sudo-less [Docker](https://www.docker.com/)
 -   [Docker Buildx plugin](https://github.com/docker/buildx)
 -   [Python 3](https://www.python.org/downloads/) installed on your Linux machine.
--   [Bazelisk](https://github.com/bazelbuild/bazelisk/releases/download/) to be able to build code
-    outside of DevKit containers
+-   [Bazelisk](https://github.com/bazelbuild/bazelisk/releases) to be able to build code outside of
+    DevKit containers
 
 ## Setup
 

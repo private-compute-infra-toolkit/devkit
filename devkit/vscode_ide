@@ -103,11 +103,9 @@ if [[ ${SERVER} -eq 1 ]]; then
   COMMAND+=(serve-web --host=127.0.0.1 --port=8080 --without-connection-token)
 else
   DISPLAY_SOCKET="/tmp/.X11-unix"
-  SYSTEM_BUS_SOCKET="/run/dbus/system_bus_socket"
   ARGS+=(
     --privileged
     --volume="${DISPLAY_SOCKET}:${DISPLAY_SOCKET}"
-    --volume="${SYSTEM_BUS_SOCKET}:${SYSTEM_BUS_SOCKET}"
     --env="DISPLAY"
   )
   COMMAND+=(--disable-dev-shm-usage --wait "${PWD}")

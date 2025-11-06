@@ -63,6 +63,7 @@ mkdir -p "${PIP_CACHE}"
 mkdir -p "${MATPLOTLIB_CONFIG}"
 
 declare -r DOCKER_SOCKET="/var/run/docker.sock"
+declare -r SYSTEM_BUS_SOCKET="/run/dbus/system_bus_socket"
 declare -r GIT_CONFIG="${HOME}/.gitconfig"
 
 touch "${GIT_CONFIG}"
@@ -95,6 +96,7 @@ declare -a MOUNTS=(
   "${PIP_CACHE}"
   "${MATPLOTLIB_CONFIG}"
   "${DOCKER_SOCKET}"
+  "${SYSTEM_BUS_SOCKET}"
   "${GIT_CONFIG}"
 )
 
