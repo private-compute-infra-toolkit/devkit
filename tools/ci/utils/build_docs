@@ -16,11 +16,17 @@
 set -o errexit
 set -o nounset
 set -o xtrace
-
 export TZ=Etc/UTC
-export PS4='+\t $(basename ${BASH_SOURCE[0]}):${LINENO} '
+export PS4='+\t $(basename ${BASH_SOURCE[0]}):${LINENO} ' # xtrace prompt
 
 declare -i DEBUG=0
+
+function collect_logs() {
+  if [[ -v KOKORO_ARTIFACTS_DIR ]]; then
+    cp -r "${HOME}/.devkit/logs" "${KOKORO_ARTIFACTS_DIR}"
+  fi
+}
+trap collect_logs EXIT
 
 function usage() {
   local -i exitval=${1-1}
@@ -76,13 +82,15 @@ if [[ -n "$(git status docs/help --porcelain)" ]]; then
 fi
 
 declare -r DEVKIT="${PWD}"
-declare DOCS=/tmp/docs
+declare DOCS
 if [[ ${DEBUG} -ne 1 ]]; then
   DOCS="$(mktemp --directory)"
+else
+  DOCS=/tmp/docs
+  rm -rf "${DOCS}"
+  mkdir "${DOCS}"
 fi
-rm -rf "${DOCS}"
-mkdir "${DOCS}"
-pushd "${DOCS}" >/dev/null
+cd "${DOCS}"
 ln -s "${DEVKIT}" .devkit
 ln -s .devkit/devkit devkit
 devkit/bootstrap --templates-root .devkit --template docs
@@ -92,4 +100,3 @@ fi
 if [[ ${DEBUG} -ne 1 ]]; then
   rm -rf "${DOCS}"
 fi
-popd >/dev/null

@@ -298,6 +298,17 @@ class ListExternalMountsTest(unittest.TestCase):
         result = list_external_mounts.get_minimal_mounts(self.scan_dir, [])
         self.assertEqual(result, {self.external_dir.resolve()})
 
+    def test_symlink_mount_preserves_both_paths(self) -> None:
+        """Test that a symlink mount preserves both the original and resolved paths."""
+        external_file = self.external_dir / "file.txt"
+        external_file.touch()
+        symlink_path = self.scan_dir / "symlink_to_file"
+        symlink_path.symlink_to(external_file)
+
+        result = list_external_mounts.get_minimal_mounts(self.scan_dir, [symlink_path])
+        self.assertIn(symlink_path, result)
+        self.assertIn(external_file.resolve(), result)
+
     def test_venv_directory_is_ignored(self) -> None:
         """Test that .venv directories are not scanned."""
         venv_dir = self.scan_dir / ".venv"

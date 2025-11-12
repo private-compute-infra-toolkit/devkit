@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.15.0 (2025-11-12)
+
+
+### Features
+
+* Keep original path when mount is a symlink
+
+
+### Bug Fixes
+
+* Add comment explaning xtrace prompt
+* **deps:** Pin buildifier to 6.1.1
+* Improve clarity of debug vs non-debug mode
+
 ## 1.14.0 (2025-11-06)
 
 

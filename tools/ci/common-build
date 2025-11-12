@@ -71,7 +71,7 @@ kokoro::set_devkit
 cd "${DEVKIT}"
 
 declare -i num_templates
-num_templates=$(grep -E -c -v '^[[:space:]]*($|#)' "${DEVKIT}/templates.txt")
+num_templates=$(grep -c '[^[:space:]]' "${DEVKIT}/templates.txt")
 declare -i counter=0
 
 # We are using file descriptor 3 to read the templates, so that the commands
