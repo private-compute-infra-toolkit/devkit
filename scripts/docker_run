@@ -110,6 +110,10 @@ fi
 
 declare -a ADDITIONAL_ENV=()
 
+if [[ $NOBODY_GROUP_ID -gt 0 ]]; then
+  ADDITIONAL_ENV+=("--env=NOBODY_GROUP_ID=${NOBODY_GROUP_ID}")
+fi
+
 declare -a LIST_EXTERNAL_MOUNTS_ARGS=()
 LIST_EXTERNAL_MOUNTS_ARGS+=(--root-dir "${PROJECT_ROOT}")
 for path in "${MOUNTS[@]}"; do
@@ -178,7 +182,6 @@ docker run \
     --env="DOCKER_GROUP=${DOCKER_GROUP}" \
     --env="DOCKER_GROUP_ID=${DOCKER_GROUP_ID}" \
     --env="NOBODY_GROUP=${NOBODY_GROUP}" \
-    --env="NOBODY_GROUP_ID=${NOBODY_GROUP_ID}" \
     "${ADDITIONAL_ENV[@]}" \
     "${DOCKER_MOUNTS[@]}" \
     --net=host \

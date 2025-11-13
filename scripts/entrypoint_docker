@@ -36,8 +36,8 @@ if [[ -z ${DOCKER_GROUP} ]] || [[ -z ${DOCKER_GROUP_ID} ]]; then
     exit 1
 fi
 
-if [[ -z ${NOBODY_GROUP} ]] || [[ -z ${NOBODY_GROUP_ID} ]]; then
-    echo "Error: NOBODY_GROUP and NOBODY_GROUP_ID must be set as environment variables." >&2
+if [[ -z ${NOBODY_GROUP} ]]; then
+    echo "Error: NOBODY_GROUP must be set as environment variable." >&2
     exit 1
 fi
 
@@ -55,7 +55,11 @@ groupadd -g "${DOCKER_GROUP_ID}" "${DOCKER_GROUP}"
 usermod -aG "${DOCKER_GROUP}" "${USER}"
 
 if ! getent group "${NOBODY_GROUP}" &>/dev/null; then
-    groupadd -g "${NOBODY_GROUP_ID}" "${NOBODY_GROUP}"
+    if [[ -v NOBODY_GROUP_ID ]]; then
+        groupadd -g "${NOBODY_GROUP_ID}" "${NOBODY_GROUP}"
+    else
+        groupadd "${NOBODY_GROUP}"
+    fi
 fi
 
 usermod -aG sudo "${USER}"

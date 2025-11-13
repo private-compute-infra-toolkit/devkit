@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.16.0 (2025-11-13)
+
+
+### Dependencies
+
+* **deps:** Update Gemini CLI to version 0.14.0
+
+
+### GitHub
+
+* **github:** Fix github workflows
+
 ## 1.15.0 (2025-11-12)
 
 

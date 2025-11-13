@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,23 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: json-docker-run-args-action
+name: Build-RockyLinux-AMD64
+permissions:
+  contents: read
+
 on:
   push:
     branches:
       - main
       - release-*
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v5
-      - name: Run script
+
+      - name: Free disk space
+        uses: ./.github/actions/free-disk-space
+
+      - name: Set git identity
+        uses: ./.github/actions/set-git-identity
+
+      - name: Run build-rockylinux
         run: |
-          set -x
-          echo "Running script ..."
-          tools/ci/utils/test_devkit_json_docker_run_args.sh
+          tools/ci/build-rockylinux
+
+      - name: Upload devkit logs
+        uses: ./.github/actions/upload-devkit-logs

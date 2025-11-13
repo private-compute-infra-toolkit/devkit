@@ -12,26 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Build & Test DevKit
-permissions:
-  contents: read
-
-on:
-  push:
-    branches:
-      - main
-      - release-*
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Pre-commit checks
-      run: tools/ci/pre-commit
-
-    - name: Build and small tests
-      run: tools/ci/build-debian
+name: 'Free Disk Space'
+description: 'Frees up disk space by removing pre-installed tools and pruning docker'
+runs:
+  using: 'composite'
+  steps:
+    - name: Free Disk Space
+      shell: bash
+      run: ${GITHUB_ACTION_PATH}/free-disk-space.sh
