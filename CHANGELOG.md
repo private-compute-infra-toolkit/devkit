@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.17.0 (2025-11-14)
+
+
+### GitHub
+
+* **github:** Add scorecards for github actions
+
+
+### Features
+
+* Handle GIT_DISCOVERY_ACROSS_FILESYSTEM
+
 ## 1.16.0 (2025-11-13)
 
 

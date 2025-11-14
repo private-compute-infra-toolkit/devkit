@@ -100,15 +100,16 @@ declare -a MOUNTS=(
   "${GIT_CONFIG}"
 )
 
+declare -a ADDITIONAL_ENV=()
+
 if git rev-parse --is-inside-work-tree &>/dev/null; then
   GIT_DIR="$(git rev-parse --absolute-git-dir)"
   readonly GIT_DIR
   if [[ "${GIT_DIR}" != "${PWD}"* ]]; then
     MOUNTS+=("${GIT_DIR}")
+    ADDITIONAL_ENV+=("--env=GIT_DISCOVERY_ACROSS_FILESYSTEM=1")
   fi
 fi
-
-declare -a ADDITIONAL_ENV=()
 
 if [[ $NOBODY_GROUP_ID -gt 0 ]]; then
   ADDITIONAL_ENV+=("--env=NOBODY_GROUP_ID=${NOBODY_GROUP_ID}")

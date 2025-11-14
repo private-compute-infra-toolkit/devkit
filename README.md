@@ -2,6 +2,11 @@
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/private-compute-infra-toolkit/devkit/badge)](https://scorecard.dev/viewer/?uri=github.com/private-compute-infra-toolkit/devkit)
 
+![Pre-Commit Scorecard](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/pre-commit.yaml/badge.svg)
+![Build Scorecard](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/build.yml/badge.svg)
+![Build-Debian Scorecard](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/build-debian.yml/badge.svg)
+![Build-RockyLinux Scorecard](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/build-rockylinux.yml/badge.svg)
+
 _Faster, Safer, Easier TEE Development._
 
 DevKit is a tooling package built to accelerate development, improve code quality, and ensure
