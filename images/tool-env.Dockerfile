@@ -31,13 +31,16 @@ COPY --from=docker-buildx-image /buildx /usr/libexec/docker/cli-plugins/docker-b
 
 ARG SUDO_VERSION=1.9.15p5-*
 ARG GIT_VERSION=1:2.43.0-*
-ARG PYTHON3_MINIMAL_VERSION=3.12.3-*
-ARG PYTHON3_JINJA2_VERSION=3.1.2-*
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
     sudo=${SUDO_VERSION} \
     git=${GIT_VERSION} \
-    python3-minimal=${PYTHON3_MINIMAL_VERSION} \
-    python3-jinja2=${PYTHON3_JINJA2_VERSION} \
  && rm -rf /var/lib/apt/lists/*
+
+ARG EXTRA_PACKAGES=""
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ${EXTRA_PACKAGES} \
+    && rm -rf /var/lib/apt/lists/*; \
+    fi

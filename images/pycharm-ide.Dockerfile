@@ -25,3 +25,10 @@ RUN wget -O- https://download.jetbrains.com/python/pycharm-${PYCHARM_VERSION}.ta
  && mv pycharm-${PYCHARM_VERSION}/ /opt/pycharm
 
 RUN echo "-Dremote.x11.workaround=true" >> /opt/pycharm/bin/pycharm64.vmoptions
+
+ARG EXTRA_PACKAGES=""
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ${EXTRA_PACKAGES} \
+    && rm -rf /var/lib/apt/lists/*; \
+    fi

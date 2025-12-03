@@ -27,4 +27,8 @@ readonly SCRIPTS="${DEVKIT}/../scripts"
 
 source "${SCRIPTS}/lib_logging.sh"
 
-"${SCRIPTS}/build_and_run" gcloud-env "${SCRIPTS}/gcloud_setup" "$@"
+if command -v gcloud &> /dev/null && command -v jq &> /dev/null; then
+    "${SCRIPTS}/gcloud_setup" "$@"
+else
+    "${SCRIPTS}/build_and_run" gcloud-env "${SCRIPTS}/gcloud_setup" "$@"
+fi

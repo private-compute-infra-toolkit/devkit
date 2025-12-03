@@ -82,11 +82,6 @@ if [[ -z "${ACCOUNT:-}" ]]; then
   exit 1
 fi
 
-if [[ ! -f /.dockerenv ]]; then
-  printf "Error: This script must be run inside a Docker container.\n"
-  exit 1
-fi
-
 for cmd in gcloud jq; do
   if ! command -v "${cmd}" &> /dev/null; then
     printf "Error: Required command '%s' is not installed.\n" "${cmd}" >&2

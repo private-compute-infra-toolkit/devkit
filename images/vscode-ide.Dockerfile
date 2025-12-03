@@ -18,15 +18,20 @@ ARG BASE
 FROM ${BASE}
 
 ARG CODE_VERSION=1.103.0-*
-ARG GPG_VERSION=2.4.4-*
 
 SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends gpg=${GPG_VERSION} \
  && wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg \
  && install -D packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg \
  && echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | tee /etc/apt/sources.list.d/vscode.list > /dev/null \
  && rm -f packages.microsoft.gpg \
  && apt-get update && apt-get install -y --no-install-recommends code=${CODE_VERSION} \
  && rm -rf /var/lib/apt/lists/*
+
+ARG EXTRA_PACKAGES=""
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ${EXTRA_PACKAGES} \
+    && rm -rf /var/lib/apt/lists/*; \
+    fi

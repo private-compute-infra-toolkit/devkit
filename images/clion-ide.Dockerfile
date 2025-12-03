@@ -25,3 +25,10 @@ RUN wget -O- https://download.jetbrains.com/cpp/CLion-${CLION_VERSION}.tar.gz | 
  && mv clion-${CLION_VERSION}/ /opt/clion
 
 RUN echo "-Dremote.x11.workaround=true" >> /opt/clion/bin/clion64.vmoptions
+
+ARG EXTRA_PACKAGES=""
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ${EXTRA_PACKAGES} \
+    && rm -rf /var/lib/apt/lists/*; \
+    fi

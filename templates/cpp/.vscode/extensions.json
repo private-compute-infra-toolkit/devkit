@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "bazelbuild.vscode-bazel",
+{% if toolchain == "llvm_custom_sysroot" %}
+    "llvm-vs-code-extensions.vscode-clangd"
+{% endif %}
+  ]
+}

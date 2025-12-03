@@ -23,4 +23,4 @@ readonly SCRIPTS="${DEVKIT}/../scripts"
 
 source "${SCRIPTS}/lib_logging.sh"
 
-"${DEVKIT}/tool" "${SCRIPTS}/bootstrap.py" "$@"
+"${SCRIPTS}/build_and_run" --config "${DEVKIT}/../devkit.json" tool-env "${SCRIPTS}/bootstrap.py" "$@"

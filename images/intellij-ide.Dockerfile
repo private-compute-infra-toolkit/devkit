@@ -25,3 +25,10 @@ RUN wget -O- https://download.jetbrains.com/idea/ideaIU-${INTELLIJ_VERSION}.tar.
  && mv idea-IU-*/ /opt/intellij
 
 RUN echo "-Dremote.x11.workaround=true" >> /opt/intellij/bin/idea64.vmoptions
+
+ARG EXTRA_PACKAGES=""
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ${EXTRA_PACKAGES} \
+    && rm -rf /var/lib/apt/lists/*; \
+    fi

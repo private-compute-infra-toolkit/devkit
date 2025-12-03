@@ -52,3 +52,10 @@ RUN apt-get update \
 ARG GOBIN=/usr/local/bin
 RUN GOBIN="${GOBIN}" go install github.com/bazelbuild/bazelisk@${BAZELISK_VERSION} \
  && ln -sf "${GOBIN}"/bazelisk "${GOBIN}"/bazel
+
+ARG EXTRA_PACKAGES=""
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ${EXTRA_PACKAGES} \
+    && rm -rf /var/lib/apt/lists/*; \
+    fi

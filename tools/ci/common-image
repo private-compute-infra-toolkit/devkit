@@ -44,7 +44,7 @@ else
 fi
 
 for img in "${IMAGES[@]}"; do
-  "${DEVKIT}/scripts/docker/build.py" "${img}" --search-path "${DEVKIT}/images"
+  "${DEVKIT}/scripts/docker/build.py" "${img}" --search-path "${DEVKIT}/images" --config "${DEVKIT}/devkit.json"
 done
 
 #

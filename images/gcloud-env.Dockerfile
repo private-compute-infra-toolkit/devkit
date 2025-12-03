@@ -24,3 +24,10 @@ RUN apt-get update \
     jq=${JQ_VERSION} \
     sudo=${SUDO_VERSION} \
  && rm -rf /var/lib/apt/lists/*
+
+ARG EXTRA_PACKAGES=""
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ${EXTRA_PACKAGES} \
+    && rm -rf /var/lib/apt/lists/*; \
+    fi

@@ -68,6 +68,11 @@ tools/ci/utils/test_devkit_stdin.sh
 tools/ci/utils/test_devkit_execute_in_subdirectories.sh
 tools/ci/utils/test_devkit_json_docker_run_args.sh
 
+# copybara:strip_begin
+# TODO: To be separated into a dedicated job later.
+google_internal/templates/tests/run.sh
+# copybara:strip_end
+
 readonly DEVKIT="${PWD}"
 
 declare -i num_templates

@@ -47,8 +47,14 @@ if [[ -z ${HOME} ]]; then
 fi
 
 {
-groupadd -g "${GROUP_ID}" "${GROUP}"
-useradd --home-dir "${HOME}" --shell /bin/bash -u "${USER_ID}" -g "${GROUP_ID}" "${USER}"
+if ! getent group "${GROUP}" > /dev/null 2>&1; then
+  groupadd -g "${GROUP_ID}" "${GROUP}"
+fi
+
+if ! id -u "${USER}" > /dev/null 2>&1; then
+  useradd --home-dir "${HOME}" --shell /bin/bash -u "${USER_ID}" -g "${GROUP_ID}" "${USER}"
+fi
+
 passwd -d "${USER}"
 
 groupadd -g "${DOCKER_GROUP_ID}" "${DOCKER_GROUP}"
@@ -74,12 +80,20 @@ chmod a+w /dev/std*
 # The search is not fully recursive; the `-prune` option stops the descent
 # into a directory tree as soon as it finds a directory not owned by root.
 # This is an optimization to avoid traversing the entire home directory.
-find "${HOME}" -user root -type d -print0 -o -prune | xargs -0 chown "${USER}:${GROUP}"
+find "${HOME}" -user root -type d -print0 -o -prune | xargs -0 chgrp "${GROUP}"
+find "${HOME}" -user root -type d -print0 -o -prune | xargs -0 chown "${USER}"
 
 } &>"${DEVKIT_LOG_FILE}"
 
 # Change log file ownership to the current user.
 # If this is not done, then outside of the container the file will be owned by root.
-chown "${USER}:${GROUP}" "${DEVKIT_LOG_FILE}"
+chgrp "${GROUP}" "${DEVKIT_LOG_FILE}"
+chown "${USER}" "${DEVKIT_LOG_FILE}"
 
-exec sudo --preserve-env --preserve-env=PATH -u "${USER}" -g "${GROUP}" "$@"
+# Prepend additional path entries if provided
+if [[ -n "${ADDITIONAL_PATH:-}" ]]; then
+    PATH="${ADDITIONAL_PATH}:${PATH}"
+fi
+
+exec sudo --preserve-env --preserve-env=HOME -u "${USER}" -g "${GROUP}" \
+  env PATH="${PATH}" "$@"

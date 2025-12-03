@@ -47,6 +47,9 @@ readonly DEVKIT="${SCRIPTS}/../devkit"
 
 source "${SCRIPTS}/lib_logging.sh"
 
+# To check images customization from devkit.json
+tree
+
 bazel build //...
 
 "${DEVKIT}/check_checksums"

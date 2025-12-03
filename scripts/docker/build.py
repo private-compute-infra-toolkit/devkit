@@ -21,7 +21,7 @@ import hashlib
 import os
 import subprocess
 import sys
-from typing import List, Dict, Optional, TypedDict
+from typing import List, Dict, Optional, TypedDict, Any
 import json
 import graphlib
 import logging
@@ -30,9 +30,85 @@ from pathlib import Path
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO = ""
 ARCH = "amd64"
+EXTRA_PACKAGES_MAP: Dict[str, List[str]] = {}
 
 
-def check_docker_installed() -> None:
+CONFIG_SCHEMA = {
+    "type": dict,
+    "properties": {
+        "docker": {
+            "type": dict,
+            "properties": {
+                "registry": {
+                    "type": dict,
+                    "properties": {
+                        "host": {"type": str},
+                        "project": {"type": str},
+                        "repository": {"type": str},
+                    },
+                    "additional_properties": False,
+                },
+                "run": {"type": list},
+                "images": {
+                    "type": dict,
+                    "additional_properties": {
+                        "type": dict,
+                        "properties": {
+                            "packages": {
+                                "type": dict,
+                                "additional_properties": {"type": str},
+                            }
+                        },
+                        "additional_properties": False,
+                    },
+                },
+            },
+            "additional_properties": False,
+        }
+    },
+    "additional_properties": False,
+}
+
+
+def validate_config(data: Any, schema: Dict[str, Any], path: str = "") -> None:
+    """Validates the config against the schema."""
+    expected_type = schema.get("type")
+    if expected_type and not isinstance(data, expected_type):
+        raise ValueError(
+            f"Invalid type at '{path}'. Expected {expected_type.__name__}, "
+            f"got {type(data).__name__}."
+        )
+
+    if isinstance(data, dict):
+        properties = schema.get("properties", {})
+        additional_properties = schema.get("additional_properties", True)
+
+        if additional_properties is False:
+            extra_keys = set(data.keys()) - set(properties.keys())
+            if extra_keys:
+                raise ValueError(
+                    f"Unexpected fields at '{path}': {', '.join(sorted(extra_keys))}"
+                )
+
+        for key, prop_schema in properties.items():
+            if key in data:
+                validate_config(
+                    data[key],
+                    prop_schema,
+                    path=f"{path}.{key}" if path else key,
+                )
+
+        if isinstance(additional_properties, dict):
+            for key, value in data.items():
+                if key not in properties:
+                    validate_config(
+                        value,
+                        additional_properties,
+                        path=f"{path}.{key}" if path else key,
+                    )
+
+
+def check_docker_installed(log_file: Optional[Path]) -> None:
     """Checks if Docker is installed and available."""
     try:
         subprocess.run(
@@ -42,11 +118,14 @@ def check_docker_installed() -> None:
         )
         logging.info("Docker is installed.")
     except (subprocess.CalledProcessError, FileNotFoundError):
-        logging.error("Docker is not installed or not in PATH. Please install Docker.")
+        error_msg = "Docker is not installed or not in PATH. Please install Docker."
+        logging.error(error_msg)
+        if log_file:
+            print(f"ERROR: {error_msg}", file=sys.stderr)
         sys.exit(1)
 
 
-def check_docker_buildx_installed() -> None:
+def check_docker_buildx_installed(log_file: Optional[Path]) -> None:
     """Checks if Docker Buildx is installed and available."""
     try:
         subprocess.run(
@@ -56,48 +135,62 @@ def check_docker_buildx_installed() -> None:
         )
         logging.info("Docker Buildx is installed.")
     except (subprocess.CalledProcessError, FileNotFoundError):
-        logging.error(
+        error_msg = (
             "Docker Buildx is not installed or not enabled. "
             "Please install/enable Docker Buildx."
         )
+        logging.error(error_msg)
+        if log_file:
+            print(f"ERROR: {error_msg}", file=sys.stderr)
         sys.exit(1)
 
 
-def find_project_root() -> Optional[str]:
-    """Finds the project root by searching for 'devkit'."""
-    current_dir = os.getcwd()
-    while True:
-        if os.path.exists(os.path.join(current_dir, "devkit")):
-            return current_dir
-        parent_dir = os.path.dirname(current_dir)
-        if parent_dir == current_dir:  # Reached root
-            return None
-        current_dir = parent_dir
+def _load_registry_config(config: Dict[str, Any]) -> None:
+    """Loads the registry config from the docker config."""
+    global REPO
+    if "registry" in config["docker"]:
+        registry = config["docker"]["registry"]
+        if "host" in registry and "project" in registry and "repository" in registry:
+            h = registry["host"]
+            p = registry["project"]
+            r = registry["repository"]
+            if h and p and r:
+                REPO = f"{h}/{p}/{r}"
+
+
+def _load_images_config(config: Dict[str, Any]) -> None:
+    """Loads the images config from the docker config."""
+    if "images" in config["docker"]:
+        for img, settings in config["docker"]["images"].items():
+            if "packages" in settings:
+                packages = []
+                for k, v in settings["packages"].items():
+                    if not v:
+                        logging.error(
+                            "Package %s in image %s has an empty version. "
+                            "Please specify a version or use '*'.",
+                            k,
+                            img,
+                        )
+                        sys.exit(1)
+                    packages.append(f"{k}={v}")
+                EXTRA_PACKAGES_MAP[img] = packages
 
 
 def load_config(config_path: str) -> None:
     """Loads the devkit.json config file."""
-    global REPO
     if not os.path.exists(config_path):
         logging.info("devkit.json config file not found: %s", config_path)
         return
     with open(config_path, "r", encoding="utf-8") as f:
         try:
             config = json.load(f)
-            if "docker" in config and "registry" in config["docker"]:
-                registry = config["docker"]["registry"]
-                if (
-                    "host" in registry
-                    and "project" in registry
-                    and "repository" in registry
-                ):
-                    h = registry["host"]
-                    p = registry["project"]
-                    r = registry["repository"]
-                    if h and p and r:
-                        REPO = f"{h}/{p}/{r}"
-        except json.JSONDecodeError as e:
-            logging.error("Could not decode %s: %s", config_path, e)
+            validate_config(config, CONFIG_SCHEMA)
+            if "docker" in config:
+                _load_registry_config(config)
+                _load_images_config(config)
+        except (json.JSONDecodeError, ValueError) as e:
+            logging.error("Could not load %s: %s", config_path, e)
             sys.exit(1)
 
 
@@ -200,7 +293,7 @@ def manage_docker_image(
         if e.stderr:
             logging.error("Stderr: %s", e.stderr.strip())
         sys.exit(e.returncode if e.returncode != 0 else 1)
-    except FileNotFoundError:
+    except FileNotFoundError:  # pragma: no cover
         logging.error(
             "Docker command not found. "
             "Please ensure Docker is installed and in PATH.",
@@ -391,7 +484,7 @@ def process_image(
     build_args_for_sha_calc = []  # For SHA calculation: ["ARG_NAME=VALUE", ...]
 
     for arg_name, dep_image_name in dependencies.items():
-        if dep_image_name not in generated_tags:
+        if dep_image_name not in generated_tags:  # pragma: no cover
             logging.error(
                 "Dependency tag for '%s' (needed by '%s' as build arg '%s') not found.",
                 dep_image_name,
@@ -415,11 +508,23 @@ def process_image(
             dep_tag,
         )
 
+    extra_pkgs = EXTRA_PACKAGES_MAP.get(image_name, [])
+    if extra_pkgs:
+        extra_pkgs_str = " ".join(extra_pkgs)
+        build_args_for_manage.extend(["EXTRA_PACKAGES", extra_pkgs_str])
+        build_args_for_sha_calc.append(f"EXTRA_PACKAGES={extra_pkgs_str}")
+        logging.info(
+            "Build arg for %s: EXTRA_PACKAGES=%s",
+            image_name,
+            extra_pkgs_str,
+        )
+
     build_args_for_sha_calc.sort()
 
     try:
         current_sha = calculate_sha256(dockerfile_path, build_args_for_sha_calc)
-    except FileNotFoundError:  # Should be caught by os.path.exists, but defensive.
+    # Should be caught by os.path.exists, but defensive.
+    except FileNotFoundError:  # pragma: no cover
         logging.error(
             "Dockerfile %s disappeared before SHA calculation for image %s.",
             dockerfile_path,
@@ -470,7 +575,7 @@ def get_dependency_subgraph(
     then returns a topologically sorted list of these dependencies.
     """
     if target_image_name not in image_configs_map:
-        return []
+        return []  # pragma: no cover
 
     # Build the full dependency graph for graphlib
     full_graph = {
@@ -523,8 +628,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--config",
-        default="devkit.json",
-        help="Path to the devkit.json file.",
+        required=True,
+        help="Path to the config file.",
     )
     parser.add_argument(
         "--search-path",
@@ -540,9 +645,6 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    check_docker_installed()
-    check_docker_buildx_installed()
-
     logging.basicConfig(
         level=logging.INFO,
         format="[%(asctime)s][%(levelname)s]: %(message)s",
@@ -550,12 +652,10 @@ def main() -> None:
         filemode="a" if args.log_file else "w",
     )
 
-    config_path = args.config
-    if not os.path.isabs(config_path):
-        project_root = find_project_root()
-        if project_root:
-            config_path = os.path.join(project_root, config_path)
-    load_config(config_path)
+    check_docker_installed(args.log_file)
+    check_docker_buildx_installed(args.log_file)
+
+    load_config(args.config)
 
     image_configs_map = load_image_configs(args.search_path)
 
@@ -622,7 +722,7 @@ def main() -> None:
             local_image_mode,
         )
 
-    if print_tag_mode:
+    if print_tag_mode:  # pragma: no cover
         # Fallback: If loop finishes in print_tag_mode, target wasn't found or
         # logic error. This path should ideally not be reached if validations
         # are correct.

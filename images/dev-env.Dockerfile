@@ -24,11 +24,9 @@ ARG NVM_VERSION=v0.40.3
 ARG NODE_VERSION=v22.16.0
 ARG FDFIND_VERSION=9.0.0-*
 ARG RIPGREP_VERSION=14.1.0-*
-ARG GEMINI_CLI_VERSION=0.14.0
+ARG GEMINI_CLI_VERSION=0.18.4
 ARG COMMIT_AND_TAG_VERSION_VERSION=10.1.0
 ARG SHELLCHECK_VERSION=0.9.0-*
-ARG PYTHON3_PYTEST_VERSION=7.4.4-*
-ARG PYTHON3_PYTEST_COV_VERSION=4.1.0-*
 ARG GITLINT_VERSION=0.19.1-*
 
 SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
@@ -36,20 +34,22 @@ SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
 RUN apt-get update \
    && apt-get install -y --no-install-recommends \
    fd-find=${FDFIND_VERSION} \
+   gitlint=${GITLINT_VERSION} \
    neovim=${NEOVIM_VERSION} \
    pre-commit=${PRE_COMMIT_VERSION} \
-   python3-pytest=${PYTHON3_PYTEST_VERSION} \
-   python3-pytest-cov=${PYTHON3_PYTEST_COV_VERSION} \
    ripgrep=${RIPGREP_VERSION} \
    shellcheck=${SHELLCHECK_VERSION} \
    wget=${WGET_VERSION} \
-   gitlint=${GITLINT_VERSION} \
    && rm -rf /var/lib/apt/lists/*
 
 ARG NVM_DIR=/usr/local/nvm
+ADD https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh /tmp/nvm_install.sh
 RUN mkdir -p "${NVM_DIR}" \
-   && wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh | bash
-RUN /bin/bash -c "source ${NVM_DIR}/nvm.sh && nvm install ${NODE_VERSION} && nvm use --delete-prefix ${NODE_VERSION}"
+  && chmod 500 /tmp/nvm_install.sh \
+  && /tmp/nvm_install.sh \
+  && source "${NVM_DIR}/nvm.sh" \
+  && nvm install "${NODE_VERSION}" \
+  && nvm use --delete-prefix "${NODE_VERSION}"
 ENV NODE_PATH="${NVM_DIR}/versions/node/${NODE_VERSION}/lib/node_modules"
 ARG NODE_BIN="${NVM_DIR}/versions/node/${NODE_VERSION}/bin"
 ENV PATH="${NODE_BIN}:${PATH}"
@@ -58,3 +58,10 @@ RUN npm install -g \
     commit-and-tag-version@${COMMIT_AND_TAG_VERSION_VERSION} \
    && ln -s "${NODE_BIN}/gemini" /bin/gemini \
    && ln -s "${NODE_BIN}/commit-and-tag-version" /bin/commit-and-tag-version
+
+ARG EXTRA_PACKAGES=""
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ${EXTRA_PACKAGES} \
+    && rm -rf /var/lib/apt/lists/*; \
+    fi

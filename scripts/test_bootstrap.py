@@ -238,6 +238,40 @@ class TestBootstrapScript(unittest.TestCase):
             )
             mock_sys_exit.assert_not_called()
 
+    @patch("bootstrap.copy_and_template")
+    @patch("os.getcwd")
+    @patch("sys.exit")
+    @patch("builtins.print")
+    def test_main_with_output_dir(
+        self,
+        mock_print: MagicMock,
+        mock_sys_exit: MagicMock,
+        mock_getcwd: MagicMock,
+        mock_copy_and_template: MagicMock,
+    ) -> None:
+        """Tests the successful execution with a custom output directory."""
+        sys.argv = [
+            "bootstrap.py",
+            "--template",
+            "cpp",
+            "--output-dir",
+            "/custom/output/dir",
+        ]
+        mock_getcwd.return_value = "/path/to/cwd"  # Should be ignored for dest_dir
+        mock_copy_and_template.return_value = False  # No errors
+
+        bootstrap.main()
+
+        script_dir = Path(__file__).parent
+        expected_template_dir = (script_dir.parent / "templates" / "cpp").resolve(
+            strict=True
+        )
+        mock_copy_and_template.assert_called_once_with(
+            expected_template_dir, Path("/custom/output/dir"), {}
+        )
+        mock_print.assert_called_once_with("Project bootstrapped with 'cpp' template.")
+        mock_sys_exit.assert_not_called()
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

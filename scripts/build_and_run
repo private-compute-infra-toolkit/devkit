@@ -20,10 +20,29 @@ SCRIPTS="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
 readonly SCRIPTS
 source "${SCRIPTS}/lib_logging.sh"
 declare -r IMAGES="${SCRIPTS}/../images"
+
+DEVKIT_CONFIG=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --config)
+      DEVKIT_CONFIG="$2"
+      shift 2
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
 declare -r IMAGE_NAME="$1"
 shift
 
-BUILD_CMD="${SCRIPTS}/docker/build.py ${IMAGE_NAME} --print-tag --search-path ${IMAGES} --log-file ${DEVKIT_LOG_FILE}"
+if [[ -z "${DEVKIT_CONFIG}" ]]; then
+  DEVKIT_CONFIG="$("${SCRIPTS}/find_project_root")/devkit.json"
+fi
+readonly DEVKIT_CONFIG
+
+BUILD_CMD="${SCRIPTS}/docker/build.py ${IMAGE_NAME} --print-tag --search-path ${IMAGES} --log-file ${DEVKIT_LOG_FILE} --config ${DEVKIT_CONFIG}"
 readonly BUILD_CMD
 
 IMAGE_URI="$(${BUILD_CMD})" || {

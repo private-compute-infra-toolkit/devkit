@@ -24,7 +24,10 @@ readonly IMAGES="${DEVKIT}/../images"
 
 source "${SCRIPTS}/lib_logging.sh"
 
-BUILD_ENV_IMAGE="$("${SCRIPTS}/docker/build.py" build-env --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}")" || {
+PROJECT_ROOT="$("${SCRIPTS}/find_project_root")"
+readonly PROJECT_ROOT
+
+BUILD_ENV_IMAGE="$("${SCRIPTS}/docker/build.py" build-env --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}" --config "${PROJECT_ROOT}/devkit.json")" || {
   echo "Build failed. See logs for details: ${DEVKIT_LOG_FILE}" >&2
   exit 1
 }

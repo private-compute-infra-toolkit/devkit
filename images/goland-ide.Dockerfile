@@ -25,3 +25,10 @@ RUN wget -O- https://download.jetbrains.com/go/goland-${GOLAND_VERSION}.tar.gz |
  && mv GoLand-${GOLAND_VERSION}/ /opt/goland
 
 RUN echo "-Dremote.x11.workaround=true" >> /opt/goland/bin/goland64.vmoptions
+
+ARG EXTRA_PACKAGES=""
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ${EXTRA_PACKAGES} \
+    && rm -rf /var/lib/apt/lists/*; \
+    fi

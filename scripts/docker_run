@@ -21,52 +21,55 @@ readonly SCRIPTS
 
 source "${SCRIPTS}/lib_logging.sh"
 
-PROJECT_ROOT="$("${SCRIPTS}"/find_project_root)"
-readonly PROJECT_ROOT
+: "${DEVKIT_HOST_PROJECT_ROOT:="$("${SCRIPTS}"/find_project_root)"}"
+: "${DEVKIT_CONTAINER_PROJECT_ROOT:="${DEVKIT_HOST_PROJECT_ROOT}"}"
+: "${DEVKIT_COMMAND_PROJECT_ROOT:="${DEVKIT_HOST_PROJECT_ROOT}"}"
+: "${DEVKIT_HOST_HOME:="${HOME}"}"
+: "${DEVKIT_COMMAND_HOME:="${DEVKIT_HOST_HOME}"}"
+: "${DEVKIT_CONTAINER_HOME:="${DEVKIT_HOST_HOME}"}"
+: "${TMPDIR:="/tmp"}" # do not export this
+: "${DEVKIT_HOST_TMP_DIR:="${TMPDIR}"}"
+: "${DEVKIT_CONTAINER_TMP_DIR:="${DEVKIT_HOST_TMP_DIR}"}"
 
-declare -r DEVKIT_HOME="${HOME}/.devkit"
-declare -r BAZELISK_CACHE_HOME="${HOME}/.cache/bazelisk"
-declare -r BAZEL_CACHE_HOME="${HOME}/.cache/bazel"
-declare -r DOCKER_HOME="${HOME}/.docker"
-declare -r GCLOUD_CONFIG_HOME="${HOME}/.config/gcloud"
-declare -r GEMINI_HOME="${HOME}/.gemini"
-declare -r PRE_COMMIT_CACHE_HOME="${HOME}/.cache/pre-commit"
-declare -r PRE_COMMIT_LOCAL_HOME="${HOME}/.local/pre-commit"
-declare -r NVIM_SHARE_LOCAL_HOME="${HOME}/.local/share/nvim"
-declare -r NVIM_CACHE_HOME="${HOME}/.cache/nvim"
-declare -r GO_BUILD_CACHE_HOME="${HOME}/.cache/go-build"
-declare -r PYLINT_CACHE_HOME="${HOME}/.cache/pylint"
-declare -r NPM_HOME="${HOME}/.npm"
-declare -r BUF_CACHE_HOME="${HOME}/.cache/buf"
-declare -r STATE_LOCAL_HOME="${HOME}/.local/state"
-declare -r PIP_TOOLS_CACHE="${HOME}/.cache/pip-tools"
-declare -r PIP_CACHE="${HOME}/.cache/pip"
-declare -r MATPLOTLIB_CONFIG="${HOME}/.config/matplotlib"
+readonly DEVKIT_HOST_PROJECT_ROOT
+readonly DEVKIT_CONTAINER_PROJECT_ROOT
+readonly DEVKIT_COMMAND_PROJECT_ROOT
+readonly DEVKIT_HOST_HOME
+readonly DEVKIT_COMMAND_HOME
+readonly DEVKIT_CONTAINER_HOME
+readonly DEVKIT_HOST_TMP_DIR
+readonly DEVKIT_CONTAINER_TMP_DIR
 
-mkdir -p "${DEVKIT_HOME}"
-mkdir -p "${BAZELISK_CACHE_HOME}"
-mkdir -p "${BAZEL_CACHE_HOME}"
-mkdir -p "${DOCKER_HOME}"
-mkdir -p "${GCLOUD_CONFIG_HOME}"
-mkdir -p "${GEMINI_HOME}"
-mkdir -p "${PRE_COMMIT_CACHE_HOME}"
-mkdir -p "${PRE_COMMIT_LOCAL_HOME}"
-mkdir -p "${NVIM_SHARE_LOCAL_HOME}"
-mkdir -p "${NVIM_CACHE_HOME}"
-mkdir -p "${GO_BUILD_CACHE_HOME}"
-mkdir -p "${PYLINT_CACHE_HOME}"
-mkdir -p "${NPM_HOME}"
-mkdir -p "${BUF_CACHE_HOME}"
-mkdir -p "${STATE_LOCAL_HOME}"
-mkdir -p "${PIP_TOOLS_CACHE}"
-mkdir -p "${PIP_CACHE}"
-mkdir -p "${MATPLOTLIB_CONFIG}"
+# Array of files under ${DEVKIT_COMMAND_HOME} to be created (if don't exist) and mounted
+declare -ar HOME_FILES=(
+  ".gitconfig"
+)
+
+# Array of dirs under ${DEVKIT_COMMAND_HOME} to be created (if don't exist) and mounted
+declare -ar HOME_DIRS=(
+  ".cache/bazel"
+  ".cache/bazelisk"
+  ".cache/buf"
+  ".cache/go-build"
+  ".cache/nvim"
+  ".cache/pip"
+  ".cache/pip-tools"
+  ".cache/pre-commit"
+  ".cache/pylint"
+  ".config/gcloud"
+  ".config/google-chrome"
+  ".config/matplotlib"
+  ".devkit"
+  ".docker"
+  ".gemini"
+  ".local/pre-commit"
+  ".local/share/nvim"
+  ".local/state"
+  ".npm"
+)
 
 declare -r DOCKER_SOCKET="/var/run/docker.sock"
 declare -r SYSTEM_BUS_SOCKET="/run/dbus/system_bus_socket"
-declare -r GIT_CONFIG="${HOME}/.gitconfig"
-
-touch "${GIT_CONFIG}"
 
 declare -r DOCKER_GROUP="docker"
 declare -i DOCKER_GROUP_ID
@@ -76,31 +79,36 @@ declare -r NOBODY_GROUP="nobody"
 declare -i NOBODY_GROUP_ID
 NOBODY_GROUP_ID=$(getent group "${NOBODY_GROUP}" | cut -d: -f3)
 
+: "${USER:="$(id -u -n)"}"
+: "${USER_ID:="$(id -u)"}"
+: "${GROUP:="$(id -g -n)"}"
+: "${GROUP_ID:="$(id -g)"}"
+
+readonly USER_RUN_DIR="/run/user/${USER_ID}"
+readonly SESSION_BUS_SOCKET="${USER_RUN_DIR}/bus"
+
 declare -a MOUNTS=(
-  "${DEVKIT_HOME}"
-  "${BAZELISK_CACHE_HOME}"
-  "${BAZEL_CACHE_HOME}"
-  "${DOCKER_HOME}"
-  "${GCLOUD_CONFIG_HOME}"
-  "${GEMINI_HOME}"
-  "${PRE_COMMIT_CACHE_HOME}"
-  "${PRE_COMMIT_LOCAL_HOME}"
-  "${NVIM_SHARE_LOCAL_HOME}"
-  "${NVIM_CACHE_HOME}"
-  "${GO_BUILD_CACHE_HOME}"
-  "${PYLINT_CACHE_HOME}"
-  "${NPM_HOME}"
-  "${BUF_CACHE_HOME}"
-  "${STATE_LOCAL_HOME}"
-  "${PIP_TOOLS_CACHE}"
-  "${PIP_CACHE}"
-  "${MATPLOTLIB_CONFIG}"
   "${DOCKER_SOCKET}"
   "${SYSTEM_BUS_SOCKET}"
-  "${GIT_CONFIG}"
+  "${SESSION_BUS_SOCKET}"
 )
 
+for rel_path in "${HOME_DIRS[@]}"; do
+  dir_path="${DEVKIT_COMMAND_HOME}/${rel_path}"
+  mkdir -p "${dir_path}"
+  MOUNTS+=("${dir_path}")
+done
+
+for rel_path in "${HOME_FILES[@]}"; do
+  file_path="${DEVKIT_COMMAND_HOME}/${rel_path}"
+  parent_dir="$(dirname "${file_path}")"
+  mkdir -p "${parent_dir}"
+  touch "${file_path}"
+  MOUNTS+=("${file_path}")
+done
+
 declare -a ADDITIONAL_ENV=()
+declare -a ADDITIONAL_PATHS=()
 
 if git rev-parse --is-inside-work-tree &>/dev/null; then
   GIT_DIR="$(git rev-parse --absolute-git-dir)"
@@ -116,7 +124,7 @@ if [[ $NOBODY_GROUP_ID -gt 0 ]]; then
 fi
 
 declare -a LIST_EXTERNAL_MOUNTS_ARGS=()
-LIST_EXTERNAL_MOUNTS_ARGS+=(--root-dir "${PROJECT_ROOT}")
+LIST_EXTERNAL_MOUNTS_ARGS+=(--root-dir "${DEVKIT_COMMAND_PROJECT_ROOT}")
 for path in "${MOUNTS[@]}"; do
   LIST_EXTERNAL_MOUNTS_ARGS+=(--mount "${path}")
 done
@@ -134,12 +142,12 @@ elif [[ ! -t 0 ]]; then
 fi
 
 mapfile -t DOCKER_RUN_ARGS_FROM_JSON < <(
-  export PROJECT_ROOT
+  export DEVKIT_COMMAND_PROJECT_ROOT
   python3 - <<'EOF'
 import json
 import os
 try:
-    devkit_json_path = os.path.join(os.environ["PROJECT_ROOT"], "devkit.json")
+    devkit_json_path = os.path.join(os.environ["DEVKIT_COMMAND_PROJECT_ROOT"], "devkit.json")
     with open(devkit_json_path) as f:
         data = json.load(f)
         args = data["docker"]["run"]
@@ -165,29 +173,44 @@ done
 
 declare -a DOCKER_MOUNTS=()
 for path in "${MOUNTS[@]}"; do
-  DOCKER_MOUNTS+=("--volume=${path}:${path}")
+  host_path="${path}"
+  container_path="${path}"
+  if [[ "${path}" == "${DEVKIT_COMMAND_HOME}"* ]]; then
+    path_suffix="${path#"${DEVKIT_COMMAND_HOME}"}"
+    host_path="${DEVKIT_HOST_HOME}${path_suffix}"
+    container_path="${DEVKIT_CONTAINER_HOME}${path_suffix}"
+  fi
+  DOCKER_MOUNTS+=("--volume=${host_path}:${container_path}")
 done
+
+function join_by_colon { local IFS=":"; echo "$*"; }
+ADDITIONAL_PATH="$(join_by_colon "${ADDITIONAL_PATHS[@]}")"
 
 docker run \
     --rm \
-    --volume="${PROJECT_ROOT}:${PROJECT_ROOT}" \
+    --volume="${DEVKIT_HOST_PROJECT_ROOT}:${DEVKIT_CONTAINER_PROJECT_ROOT}" \
     --workdir="${PWD}" \
-    --env="HOME" \
+    --env="HOME=${DEVKIT_CONTAINER_HOME}" \
     --env="GOOGLE_CLOUD_PROJECT" \
     --env="GEMINI_API_KEY" \
     --env="GH_TOKEN" \
-    --env="USER=$(id -u -n)" \
-    --env="USER_ID=$(id -u)" \
-    --env="GROUP=$(id -g -n)" \
-    --env="GROUP_ID=$(id -g)" \
+    --env="USER=${USER}" \
+    --env="USER_ID=${USER_ID}" \
+    --env="GROUP=${GROUP}" \
+    --env="GROUP_ID=${GROUP_ID}" \
+    --env="TMPDIR=${DEVKIT_CONTAINER_TMP_DIR}" \
     --env="DOCKER_GROUP=${DOCKER_GROUP}" \
     --env="DOCKER_GROUP_ID=${DOCKER_GROUP_ID}" \
     --env="NOBODY_GROUP=${NOBODY_GROUP}" \
+    --env="DBUS_SYSTEM_BUS_ADDRESS=unix:path=${SYSTEM_BUS_SOCKET}" \
+    --env="DBUS_SESSION_BUS_ADDRESS=unix:path=${SESSION_BUS_SOCKET}" \
+    --env="ADDITIONAL_PATH=${ADDITIONAL_PATH}" \
     "${ADDITIONAL_ENV[@]}" \
     "${DOCKER_MOUNTS[@]}" \
     --net=host \
+    --ipc=host \
     --hostname="$(hostname)" \
-    --volume="/tmp:/tmp" \
+    --volume="${DEVKIT_HOST_TMP_DIR}:${DEVKIT_CONTAINER_TMP_DIR}" \
     --entrypoint="${SCRIPTS}/entrypoint_docker" \
     "${EVALUATED_DOCKER_RUN_ARGS[@]}" \
     "$@"

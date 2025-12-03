@@ -27,3 +27,10 @@ RUN apt-get update \
 
 RUN curl -fsL https://code-server.dev/install.sh \
   | /bin/sh /dev/stdin --version ${CODE_SERVER_VERSION}
+
+ARG EXTRA_PACKAGES=""
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ${EXTRA_PACKAGES} \
+    && rm -rf /var/lib/apt/lists/*; \
+    fi

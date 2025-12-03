@@ -25,6 +25,8 @@ ARG XI_VERSION=2:1.8.1-*
 ARG FONTCONFIG_VERSION=2.15.0-*
 ARG X11_UTILS_VERSION=7.7+*
 ARG XAUTH_VERSION=1:1.1.2-*
+ARG GPG_VERSION=2.4.4-*
+ARG GOOGLE_CHROME_STABLE_VERSION=*
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -36,4 +38,22 @@ RUN apt-get update \
     libfontconfig1=${FONTCONFIG_VERSION} \
     x11-utils=${X11_UTILS_VERSION} \
     xauth=${XAUTH_VERSION} \
+    gpg=${GPG_VERSION} \
  && rm -rf /var/lib/apt/lists/*
+
+ RUN apt-get update \
+  && mkdir -p /etc/apt/keyrings \
+  && wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg \
+  && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends \
+     google-chrome-stable=${GOOGLE_CHROME_STABLE_VERSION} \
+  && rm -rf /var/lib/apt/lists/* \
+  && rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/keyrings/google-chrome.gpg
+
+ARG EXTRA_PACKAGES=""
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
+    apt-get update \
+    && apt-get install -y --no-install-recommends ${EXTRA_PACKAGES} \
+    && rm -rf /var/lib/apt/lists/*; \
+    fi

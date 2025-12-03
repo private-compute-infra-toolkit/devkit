@@ -1,5 +1,5 @@
 usage: bootstrap [-h] --template TEMPLATE [--templates-root TEMPLATES_ROOT]
-                 [--args [ARGS ...]]
+                 [--output-dir OUTPUT_DIR] [--args [ARGS ...]]
 
 Bootstraps a new project from a template.
 
@@ -8,4 +8,6 @@ options:
   --template TEMPLATE   The name of the template to use.
   --templates-root TEMPLATES_ROOT
                         The root directory for templates lookup.
+  --output-dir OUTPUT_DIR
+                        The directory where the project will be bootstrapped. Defaults to current directory.
   --args [ARGS ...]     A list of key=value pairs for templating.

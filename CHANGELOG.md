@@ -2,6 +2,54 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 2.0.0 (2025-12-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* Simplify definition of custom packages
+* Images customization and cleanup
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.15.0
+* **deps:** Upgrade gemini-cli to 0.16.0
+* **deps:** Upgrade gemini-cli to 0.17.1
+* **deps:** Upgrade gemini-cli to 0.18.4
+
+
+### GitHub
+
+* **github:** Standardize GitHub Actions file extensions to .yaml
+
+
+### Features
+
+* Add --ipc=host to docker run
+* Add --output-dir to devkit/bootstrap
+* Add Google Chrome do ide-env
+* Add option to specify extra PATH
+* Add recommended extensions for C++ template
+* Add schema validation for devkit.json
+* Allow extra packages in docker images
+* Always run devkit/bootstrap in DevKit original image
+* Drop google-chrome version pinning
+* Drop packages that can be now installed in clients
+* Drop Python from client environment
+* Images customization and cleanup
+* Make config explicit/required in images build
+* Mount DBUS_SESSION_BUS_ADDRESS
+* Run `gcloud_setup` locally if dependencies are available
+* Simplify definition of custom packages
+* Specify versions for gh and jq tools
+* Test custimization by adding tree package
+
+
+### Bug Fixes
+
+* Print docker check errors to stderr
+* Simplify nvm installation commands
+
 ## 1.17.0 (2025-11-14)
 
 

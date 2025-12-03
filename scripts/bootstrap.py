@@ -98,6 +98,13 @@ def main() -> None:
         "--templates-root", help="The root directory for templates lookup.", type=Path
     )
     parser.add_argument(
+        "--output-dir",
+        help="The directory where the project will be bootstrapped. "
+        "Defaults to current directory.",
+        type=Path,
+        default=Path(os.getcwd()),
+    )
+    parser.add_argument(
         "--args",
         nargs="*",
         help="A list of key=value pairs for templating.",
@@ -114,7 +121,7 @@ def main() -> None:
         key, value = arg.split("=", 1)
         context[key] = value
 
-    dest_dir = Path(os.getcwd())
+    dest_dir = args.output_dir
     if args.templates_root:
         templates_root_dir = args.templates_root
     else:

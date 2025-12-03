@@ -49,3 +49,9 @@ RUN microdnf install -y ca-certificates git python3 && microdnf clean all
 RUN export GOBIN=/usr/local/bin \
     && go install github.com/bazelbuild/bazelisk@${BAZELISK_VERSION} \
     && ln -sf ${GOBIN}/bazelisk ${GOBIN}/bazel
+
+ARG EXTRA_PACKAGES=""
+RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
+    microdnf install -y ${EXTRA_PACKAGES//=/-} \
+    && microdnf clean all; \
+    fi
