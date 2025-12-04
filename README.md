@@ -2,10 +2,10 @@
 
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/private-compute-infra-toolkit/devkit/badge)](https://scorecard.dev/viewer/?uri=github.com/private-compute-infra-toolkit/devkit)
 
-![Pre-Commit Scorecard](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/pre-commit.yaml/badge.svg)
-![Build Scorecard](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/build.yaml/badge.svg)
-![Build-Debian Scorecard](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/build-debian.yaml/badge.svg)
-![Build-RockyLinux Scorecard](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/build-rockylinux.yaml/badge.svg)
+[![Pre-Commit Scorecard](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/pre-commit.yaml/badge.svg)](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/pre-commit.yaml)
+[![Build Scorecard](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/build.yaml/badge.svg)](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/build.yaml)
+[![Build-Debian Scorecard](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/build-debian.yaml/badge.svg)](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/build-debian.yaml)
+[![Build-RockyLinux Scorecard](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/build-rockylinux.yaml/badge.svg)](https://github.com/private-compute-infra-toolkit/devkit/actions/workflows/build-rockylinux.yaml)
 
 _Faster, Safer, Easier TEE Development._
 

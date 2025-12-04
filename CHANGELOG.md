@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 2.1.0 (2025-12-04)
+
+
+### GitHub
+
+* **github:** Symlinks now open jobs instead of images
+* **github:** Upload logs in the case of failures
+
+
+### Features
+
+* Always check for tests status in templates
+
+
+### Bug Fixes
+
+* Run coverage tool in dev-env
+
 ## 2.0.0 (2025-12-03)
 
 

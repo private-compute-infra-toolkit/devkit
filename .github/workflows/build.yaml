@@ -41,4 +41,5 @@ jobs:
           tools/ci/build
 
       - name: Upload devkit logs
+        if: always()
         uses: ./.github/actions/upload-devkit-logs

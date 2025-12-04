@@ -54,6 +54,4 @@ bazel build //...
 
 "${DEVKIT}/check_checksums"
 
-# This might fail if not tests are present
-# TODO: Add some tests into the project
-bazel test --config=run_all_tests //... || true
+bazel test --config=run_all_tests //...
