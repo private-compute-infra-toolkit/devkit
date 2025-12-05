@@ -48,7 +48,13 @@ fi
 
 {
 if ! getent group "${GROUP}" > /dev/null 2>&1; then
-  groupadd -g "${GROUP_ID}" "${GROUP}"
+    if getent group "${GROUP_ID}" > /dev/null 2>&1; then
+        # GID is in use by another group
+        echo "Cannot create group **${GROUP}**. GID **${GROUP_ID}** is already in use. Skipping groupadd." >&2
+    else
+        echo "Adding new group **${GROUP}** with GID **${GROUP_ID}**." >&2
+        groupadd -g "${GROUP_ID}" "${GROUP}"
+    fi
 fi
 
 if ! id -u "${USER}" > /dev/null 2>&1; then

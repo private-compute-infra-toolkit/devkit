@@ -27,10 +27,10 @@ source "${SCRIPTS}/lib_logging.sh"
 PROJECT_ROOT="$("${SCRIPTS}/find_project_root")"
 readonly PROJECT_ROOT
 
-BUILD_ENV_IMAGE="$("${SCRIPTS}/docker/build.py" build-env --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}" --config "${PROJECT_ROOT}/devkit.json")" || {
+DEV_ENV_IMAGE="$("${SCRIPTS}/docker/build.py" dev-env --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}" --config "${PROJECT_ROOT}/devkit.json")" || {
   echo "Build failed. See logs for details: ${DEVKIT_LOG_FILE}" >&2
   exit 1
 }
-readonly BUILD_ENV_IMAGE
+readonly DEV_ENV_IMAGE
 
-"${SCRIPTS}/docker_run" "${BUILD_ENV_IMAGE}" python3 "${SCRIPTS}/bep.py" "$@"
+"${SCRIPTS}/docker_run" "${DEV_ENV_IMAGE}" python3 "${SCRIPTS}/bep.py" "$@"

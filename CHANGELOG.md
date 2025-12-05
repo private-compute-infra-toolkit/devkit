@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 2.2.0 (2025-12-05)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.19.1
+
+
+### Bug Fixes
+
+* Run BEP generation from dev-env
+* Safely handle GID conflicts during primary group creation
+
 ## 2.1.0 (2025-12-04)
 
 
