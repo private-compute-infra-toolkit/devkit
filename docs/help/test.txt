@@ -1,8 +1,0 @@
-usage: test [-h] [--suffix SUFFIX]
-
-Validates the bootstrapped project by building it, verifying checksums, and running all tests.
-This is done inside the container and on the host.
-
-options:
-  -h, --help            Show this help message and exit.
-  --suffix SUFFIX       Image suffix.

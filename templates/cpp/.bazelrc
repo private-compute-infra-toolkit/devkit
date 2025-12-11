@@ -4,6 +4,11 @@ build --strip=always
 build:run_all_tests --cache_test_results=no
 
 try-import %workspace%/google_internal/.bazelrc
+{% if toolchain == "llvm_custom_sysroot" -%}
+coverage --cache_test_results=no
+coverage --experimental_generate_llvm_lcov
+coverage --instrumentation_filter=^//src(?!:main)
+{% endif -%}
 {% if toolchain == "llvm_bootstrapped" -%}
 common --experimental_cc_static_library
 {% endif -%}

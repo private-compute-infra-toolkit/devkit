@@ -16,23 +16,12 @@
 set -o errexit
 set -o nounset
 
-DEVKIT="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
-readonly DEVKIT
-
-readonly SCRIPTS="${DEVKIT}/../scripts"
-readonly IMAGES="${DEVKIT}/../images"
-
-source "${SCRIPTS}/lib_logging.sh"
-
-PROJECT_ROOT="$("${SCRIPTS}/find_project_root")"
-readonly PROJECT_ROOT
-
 function usage() {
   local -i exitval=${1-1}
   cat << USAGE
 usage: $(basename "${BASH_SOURCE[0]}") [-h] [--suffix SUFFIX]
 
-Validates the bootstrapped project by building it, verifying checksums, and running all tests.
+Validates project by building it, verifying checksums, and running all tests.
 This is done inside the container and on the host.
 
 options:
@@ -58,26 +47,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-declare IMAGE_NAME="build-env"
-if [[ -n ${SUFFIX} ]]; then
-  IMAGE_NAME+="${SUFFIX}"
-fi
-
-BUILD_ENV_IMAGE="$("${SCRIPTS}/docker/build.py" "${IMAGE_NAME}" --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}" --config "${PROJECT_ROOT}/devkit.json")" || {
-  echo "Build failed. See logs for details: ${DEVKIT_LOG_FILE}" >&2
-  exit 1
-}
-readonly BUILD_ENV_IMAGE
-
-#
-# validate the operation of the build* script
-#
-if "${DEVKIT}/build${SUFFIX}" bash -c "exit 2"; then
-  printf "%s failed. Expected non-zero exit\n" "${DEVKIT}/build${SUFFIX}"
-  exit 1
-fi
-
-"${SCRIPTS}/docker_run" "${BUILD_ENV_IMAGE}" "${SCRIPTS}/test_entrypoint"
-
+"devkit/build${SUFFIX}" "./ci/test_entrypoint"
+{% if toolchain == "llvm_custom_sysroot" -%}
+devkit/coverage --line 100 --branch 100
+{% endif -%}
+{% if toolchain == "llvm_bootstrapped" -%}
+devkit/bep
+{% endif -%}
 # This might fail if Bazel is not installed
-"${SCRIPTS}/test_entrypoint" || true
+"./ci/test_entrypoint" || true

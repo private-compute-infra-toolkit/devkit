@@ -22,39 +22,39 @@ readonly SCRIPTS
 source "${SCRIPTS}/lib_logging.sh"
 
 if [[ -z ${USER} ]] || [[ -z ${USER_ID} ]]; then
-    echo "Error: USER and USER_ID must be set as environment variables." >&2
-    exit 1
+  echo "Error: USER and USER_ID must be set as environment variables." >&2
+  exit 1
 fi
 
 if [[ -z ${GROUP} ]] || [[ -z ${GROUP_ID} ]]; then
-    echo "Error: GROUP and GROUP_ID must be set as environment variables." >&2
-    exit 1
+  echo "Error: GROUP and GROUP_ID must be set as environment variables." >&2
+  exit 1
 fi
 
 if [[ -z ${DOCKER_GROUP} ]] || [[ -z ${DOCKER_GROUP_ID} ]]; then
-    echo "Error: DOCKER_GROUP and DOCKER_GROUP_ID must be set as environment variables." >&2
-    exit 1
+  echo "Error: DOCKER_GROUP and DOCKER_GROUP_ID must be set as environment variables." >&2
+  exit 1
 fi
 
 if [[ -z ${NOBODY_GROUP} ]]; then
-    echo "Error: NOBODY_GROUP must be set as environment variable." >&2
-    exit 1
+  echo "Error: NOBODY_GROUP must be set as environment variable." >&2
+  exit 1
 fi
 
 if [[ -z ${HOME} ]]; then
-    echo "Error: HOME must be set as environment variable." >&2
-    exit 1
+  echo "Error: HOME must be set as environment variable." >&2
+  exit 1
 fi
 
 {
 if ! getent group "${GROUP}" > /dev/null 2>&1; then
-    if getent group "${GROUP_ID}" > /dev/null 2>&1; then
-        # GID is in use by another group
-        echo "Cannot create group **${GROUP}**. GID **${GROUP_ID}** is already in use. Skipping groupadd." >&2
-    else
-        echo "Adding new group **${GROUP}** with GID **${GROUP_ID}**." >&2
-        groupadd -g "${GROUP_ID}" "${GROUP}"
-    fi
+  if getent group "${GROUP_ID}" > /dev/null 2>&1; then
+    # GID is in use by another group
+    echo "Cannot create group **${GROUP}**. GID **${GROUP_ID}** is already in use. Skipping groupadd." >&2
+  else
+    echo "Adding new group **${GROUP}** with GID **${GROUP_ID}**." >&2
+    groupadd -g "${GROUP_ID}" "${GROUP}"
+  fi
 fi
 
 if ! id -u "${USER}" > /dev/null 2>&1; then
@@ -67,11 +67,11 @@ groupadd -g "${DOCKER_GROUP_ID}" "${DOCKER_GROUP}"
 usermod -aG "${DOCKER_GROUP}" "${USER}"
 
 if ! getent group "${NOBODY_GROUP}" &>/dev/null; then
-    if [[ -v NOBODY_GROUP_ID ]]; then
-        groupadd -g "${NOBODY_GROUP_ID}" "${NOBODY_GROUP}"
-    else
-        groupadd "${NOBODY_GROUP}"
-    fi
+  if [[ -v NOBODY_GROUP_ID ]]; then
+    groupadd -g "${NOBODY_GROUP_ID}" "${NOBODY_GROUP}"
+  else
+    groupadd "${NOBODY_GROUP}"
+  fi
 fi
 
 usermod -aG sudo "${USER}"
@@ -97,8 +97,8 @@ chgrp "${GROUP}" "${DEVKIT_LOG_FILE}"
 chown "${USER}" "${DEVKIT_LOG_FILE}"
 
 # Prepend additional path entries if provided
-if [[ -n "${ADDITIONAL_PATH:-}" ]]; then
-    PATH="${ADDITIONAL_PATH}:${PATH}"
+if [[ -n ${ADDITIONAL_PATH:-} ]]; then
+  PATH="${ADDITIONAL_PATH}:${PATH}"
 fi
 
 exec sudo --preserve-env --preserve-env=HOME -u "${USER}" -g "${GROUP}" \

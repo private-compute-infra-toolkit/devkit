@@ -1,6 +1,9 @@
 bazel-*
 .gemini
+{% if toolchain == "llvm_custom_sysroot" -%}
 compile_commands.json
 external
 .cache
+coverage.log
+{% endif -%}
 .clwb

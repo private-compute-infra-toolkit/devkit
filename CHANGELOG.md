@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 2.3.0 (2025-12-11)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.19.3
+* **deps:** Upgrade gemini-cli to 0.19.4
+* **deps:** Upgrade gemini-cli to 0.20.0
+* **deps:** Upgrade node.js to 22.21.1
+
+
+### Features
+
+* Check coverage thresholds in the C++ template
+* Move devkit/test to ci/tests in template/cpp
+* Run devkit/bep in the lightweight C++ template
+* Run devkit/coverage in the supported C++ template
+
 ## 2.2.0 (2025-12-05)
 
 

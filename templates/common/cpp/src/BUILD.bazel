@@ -12,12 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+
+cc_library(
+    name = "greeter",
+    srcs = ["greeter.cpp"],
+    hdrs = ["greeter.hpp"],
+)
 
 cc_binary(
     name = "main",
     srcs = ["main.cpp"],
     deps = [
+        ":greeter",
         "@abseil-cpp//absl/debugging:failure_signal_handler",
         "@abseil-cpp//absl/debugging:symbolize",
         "@abseil-cpp//absl/flags:flag",
@@ -35,6 +42,7 @@ cc_test(
     size = "small",
     srcs = ["test.cpp"],
     deps = [
+        ":greeter",
         "@googletest//:gtest_main",
     ],
 )

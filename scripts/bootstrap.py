@@ -20,6 +20,7 @@ import argparse
 from collections.abc import Mapping
 import os
 from pathlib import Path
+import shutil
 import sys
 import jinja2
 
@@ -57,6 +58,7 @@ def copy_and_template(
                 with dest_file_path.open("w", encoding="utf-8") as f:
                     f.write(template.render(context))
                     f.write("\n")
+                shutil.copymode(src_file_path, dest_file_path)
             except jinja2.exceptions.TemplateSyntaxError as e:
                 error_occurred = True
                 print(f"Error in template: {src_file_path}", file=sys.stderr)

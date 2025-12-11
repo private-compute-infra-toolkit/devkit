@@ -65,7 +65,6 @@ declare -a tools=(
   build
   check_checksums
   dev
-  test
   vscode_ide
   get-architecture
   coverage

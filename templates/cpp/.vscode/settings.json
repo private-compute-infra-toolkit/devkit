@@ -1,6 +1,7 @@
 {
   "clangd.arguments": ["--header-insertion=never", "--compile-commands-dir=${workspaceFolder}/", "--query-driver=**"],
 {% if toolchain == "llvm_custom_sysroot" %}
-  "clangd.path": "./external/toolchains_llvm++llvm+llvm_toolchain_with_custom_sysroot/bin/clangd"
+  "clangd.path": "./external/toolchains_llvm++llvm+llvm_toolchain_with_custom_sysroot/bin/clangd",
+  "coverage-gutters.coverageFileNames": ["bazel-out/_coverage/_coverage_report.dat"]
 {% endif %}
 }

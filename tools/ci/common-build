@@ -108,7 +108,7 @@ while IFS= read -r -u 3 template_args || [[ -n "${template_args}" ]]; do
   git add .
   git commit -m "chore: Initial commit" -m "Setting-up a test repo."
 
-  devkit/test --suffix "${SUFFIX}"
+  ci/test --suffix "${SUFFIX}"
 
   if [[ -n "$(git status --porcelain)" ]]; then
     echo "Unexpected git change in the instantiated template. Add them to the template."

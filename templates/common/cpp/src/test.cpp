@@ -13,9 +13,12 @@
 // limitations under the License.
 
 #include "gtest/gtest.h"
+#include "src/greeter.hpp"
 
 namespace {
 
 TEST(Test, Trivial) { EXPECT_EQ(1, 1); }
+
+TEST(Test, Greeter) { EXPECT_EQ(GetGreeterMessage(), "DevKit for C++!\n"); }
 
 }  // namespace

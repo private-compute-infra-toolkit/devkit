@@ -1,6 +1,7 @@
 {
   "version": "2.0.0",
   "tasks": [
+{% if toolchain == "llvm_custom_sysroot" %}
     {
       "label": "Generate compile_commands.json",
       "command": "bazel",
@@ -17,6 +18,14 @@
       "runOptions": {
         "runOn": "folderOpen"
       }
+    },
+    {
+      "label": "Watch coverage on open",
+      "command": "${command:coverage-gutters.watchCoverageAndVisibleEditors}",
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
     }
+{% endif %}
   ]
 }

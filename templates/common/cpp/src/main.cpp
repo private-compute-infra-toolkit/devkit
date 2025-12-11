@@ -16,8 +16,6 @@
 #error "Clang should be used to build the code."
 #endif
 
-#include <string_view>
-
 #include "absl/debugging/failure_signal_handler.h"
 #include "absl/debugging/symbolize.h"
 #include "absl/flags/flag.h"
@@ -25,6 +23,7 @@
 #include "absl/log/globals.h"
 #include "absl/log/initialize.h"
 #include "absl/log/log.h"
+#include "src/greeter.hpp"
 
 ABSL_FLAG(bool, verbose, false, "Verbose mode.");
 
@@ -41,7 +40,7 @@ int main(int argc, char* argv[]) {
   absl::SetStderrThreshold(absl::GetFlag(FLAGS_verbose)
                                ? absl::LogSeverity::kInfo
                                : absl::LogSeverity::kWarning);
-  constexpr std::string_view mesg = "DevKit for C++!\n";
+  std::string mesg = GetGreeterMessage();
   LOG(INFO) << mesg;
   std::cout << mesg;
   return 0;
