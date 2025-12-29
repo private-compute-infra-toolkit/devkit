@@ -1,4 +1,5 @@
 .idea
-.gemini
+.gemini/*
+!.gemini/commands/
 __pycache__
 .coverage

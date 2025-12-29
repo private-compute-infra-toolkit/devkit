@@ -47,8 +47,27 @@ function get_config_value() {
   local -r config_path="$2"
   local value
 
-  value="$(jq -r "${key}" "${config_path}")"
-  if [[ -z ${value} ]] || [[ ${value} == null ]]; then
+  value="$(python3 - "${key}" "${config_path}" << EOF
+import sys
+import json
+
+try:
+  with open(sys.argv[2], 'r') as f:
+    data = json.load(f)
+  keys = sys.argv[1].split('.')
+  if keys[0] == '':
+      keys = keys[1:]
+  result = data
+  for k in keys:
+      if result is None:
+          break
+      result = result.get(k)
+  print(result if result is not None else '')
+except Exception:
+  pass
+EOF
+)"
+  if [[ -z "${value}" ]]; then
     printf "Error: Could not find '%s' key in %s\n" "${key}" "${config_path}" >&2
     exit 1
   fi
@@ -82,12 +101,10 @@ if [[ -z "${ACCOUNT:-}" ]]; then
   exit 1
 fi
 
-for cmd in gcloud jq; do
-  if ! command -v "${cmd}" &> /dev/null; then
-    printf "Error: Required command '%s' is not installed.\n" "${cmd}" >&2
-    exit 1
-  fi
-done
+if ! command -v gcloud &> /dev/null; then
+  printf "Error: Required command 'gcloud' is not installed.\n" >&2
+  exit 1
+fi
 
 PROJECT_ROOT="$("${SCRIPTS}"/find_project_root)"
 DEVKIT_CONFIG_PATH="${PROJECT_ROOT}/devkit.json"

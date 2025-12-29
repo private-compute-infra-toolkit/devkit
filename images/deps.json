@@ -37,6 +37,11 @@
             "BASE": "ide-env"
         }
     },
+    "nitro-cli-linux6": {
+        "deps": {
+            "BASE": "tool-env"
+        }
+    },
     "pycharm-ide": {
         "deps": {
             "BASE": "ide-env"

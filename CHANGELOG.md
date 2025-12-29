@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 2.4.0 (2025-12-29)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.21.1
+* **deps:** Upgrade gemini-cli to 0.22.1
+
+
+### Features
+
+* Add devkit/vendor to support offline builds
+* Add nitro-cli image
+* Add pre-commit test for devkit/vendor
+
+
+### Bug Fixes
+
+* Switch to symbolic notation for `chmod`
+
 ## 2.3.0 (2025-12-11)
 
 

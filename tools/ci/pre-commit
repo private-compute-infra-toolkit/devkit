@@ -67,6 +67,7 @@ tools/ci/utils/test_devkit_get_architecture.sh
 tools/ci/utils/test_devkit_stdin.sh
 tools/ci/utils/test_devkit_execute_in_subdirectories.sh
 tools/ci/utils/test_devkit_json_docker_run_args.sh
+tools/ci/utils/test_devkit_vendor.sh
 
 readonly DEVKIT="${PWD}"
 

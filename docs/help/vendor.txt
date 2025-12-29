@@ -1,0 +1,9 @@
+usage: vendor --dir <directory> [--config <file>] [--load] [image_name ...]
+
+Vendors (saves) or loads Docker images.
+
+options:
+  -h, --help            Show this help message and exit.
+  --dir <directory>     Directory to save images to or load images from.
+  --config <file>       Path to devkit.json config file. Defaults to devkit.json in the project root.
+  --load                Load images from the directory instead of saving.

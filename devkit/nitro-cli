@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,20 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG GCLOUD_CLI_VERSION=540.0.0
+set -o errexit
+set -o nounset
 
-FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:${GCLOUD_CLI_VERSION}-slim
+DEVKIT="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
+readonly DEVKIT
 
-ARG SUDO_VERSION=1.9.*
+readonly SCRIPTS="${DEVKIT}/../scripts"
+source "${SCRIPTS}/lib_logging.sh"
 
-RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-    sudo=${SUDO_VERSION} \
- && rm -rf /var/lib/apt/lists/*
-
-ARG EXTRA_PACKAGES=""
-RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
-    apt-get update \
-    && apt-get install -y --no-install-recommends ${EXTRA_PACKAGES} \
-    && rm -rf /var/lib/apt/lists/*; \
-    fi
+"${SCRIPTS}/build_and_run" nitro-cli-linux6 nitro-cli "$@"
