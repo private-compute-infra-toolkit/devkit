@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 2.5.0 (2026-01-08)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.23.0
+
+
+### Features
+
+* Add check-toml to pre-commit hooks
+
 ## 2.4.0 (2025-12-29)
 
 

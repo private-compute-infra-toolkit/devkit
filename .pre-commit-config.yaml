@@ -42,6 +42,7 @@ repos:
       - id: check-added-large-files
       - id: check-vcs-permalinks
       - id: check-executables-have-shebangs
+      - id: check-toml
       - id: detect-private-key
 
   - repo: https://github.com/jumanjihouse/pre-commit-hooks
