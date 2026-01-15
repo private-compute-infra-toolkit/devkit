@@ -24,7 +24,7 @@ readonly IMAGES="${DEVKIT}/../images"
 
 source "${SCRIPTS}/lib_logging.sh"
 
-PROJECT_ROOT="$("${SCRIPTS}/find_project_root")"
+PROJECT_ROOT="$("${SCRIPTS}/find_project_root.py")"
 readonly PROJECT_ROOT
 
 CLION_IDE_IMAGE="$("${SCRIPTS}/docker/build.py" clion-ide --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}" --config "${PROJECT_ROOT}/devkit.json")" || {

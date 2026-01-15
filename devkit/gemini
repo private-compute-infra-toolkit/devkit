@@ -25,4 +25,32 @@ source "${SCRIPTS}/lib_logging.sh"
 GEMINI_CLI="gemini"
 GEMINI_ARGS=()
 
-"${SCRIPTS}/build_and_run" dev-env "${GEMINI_CLI}" "${GEMINI_ARGS[@]}" "$@"
+NATIVE_RUN=false
+SHOW_HELP=false
+FORWARDED_ARGS=()
+for arg in "$@"; do
+  case "${arg}" in
+    --native)
+      NATIVE_RUN=true
+      ;;
+    --help|-h)
+      SHOW_HELP=true
+      FORWARDED_ARGS+=("${arg}")
+      ;;
+    *)
+      FORWARDED_ARGS+=("${arg}")
+      ;;
+  esac
+done
+
+if [[ "${SHOW_HELP}" == true ]]; then
+  echo "Additional devkit/gemini options:"
+  echo "  --native   Run gemini CLI directly on the host, without Docker containerization."
+  echo ""
+fi
+
+if [[ "${NATIVE_RUN}" == true ]]; then
+  "${GEMINI_CLI}" "${GEMINI_ARGS[@]}" "${FORWARDED_ARGS[@]}"
+else
+  "${SCRIPTS}/build_and_run" dev-env "${GEMINI_CLI}" "${GEMINI_ARGS[@]}" "${FORWARDED_ARGS[@]}"
+fi

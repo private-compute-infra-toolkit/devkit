@@ -21,7 +21,7 @@ readonly SCRIPTS
 
 source "${SCRIPTS}/lib_logging.sh"
 
-: "${DEVKIT_HOST_PROJECT_ROOT:="$("${SCRIPTS}"/find_project_root)"}"
+: "${DEVKIT_HOST_PROJECT_ROOT:="$("${SCRIPTS}"/find_project_root.py)"}"
 : "${DEVKIT_CONTAINER_PROJECT_ROOT:="${DEVKIT_HOST_PROJECT_ROOT}"}"
 : "${DEVKIT_COMMAND_PROJECT_ROOT:="${DEVKIT_HOST_PROJECT_ROOT}"}"
 : "${DEVKIT_HOST_HOME:="${HOME}"}"

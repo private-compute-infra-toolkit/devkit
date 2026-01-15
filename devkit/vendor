@@ -99,7 +99,7 @@ if [[ -z "${DIR}" ]]; then
 fi
 
 if [[ -z "${CONFIG}" ]]; then
-  PROJECT_ROOT="$("${SCRIPTS}"/find_project_root)"
+  PROJECT_ROOT="$("${SCRIPTS}"/find_project_root.py)"
   readonly PROJECT_ROOT
   CONFIG="${PROJECT_ROOT}/devkit.json"
 fi

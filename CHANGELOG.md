@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 2.6.0 (2026-01-15)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.24.0
+
+
+### Features
+
+* Add --native option to devkit/gemini
+* Deprecate old script for finding root of project
+* Rewrite script for finding root of the project
+
 ## 2.5.0 (2026-01-08)
 
 

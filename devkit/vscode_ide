@@ -24,7 +24,7 @@ readonly IMAGES="${DEVKIT}/../images"
 
 source "${SCRIPTS}/lib_logging.sh"
 
-PROJECT_ROOT="$("${SCRIPTS}/find_project_root")"
+PROJECT_ROOT="$("${SCRIPTS}/find_project_root.py")"
 readonly PROJECT_ROOT
 
 function usage() {

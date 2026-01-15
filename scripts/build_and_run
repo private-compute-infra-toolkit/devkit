@@ -38,7 +38,7 @@ declare -r IMAGE_NAME="$1"
 shift
 
 if [[ -z "${DEVKIT_CONFIG}" ]]; then
-  DEVKIT_CONFIG="$("${SCRIPTS}/find_project_root")/devkit.json"
+  DEVKIT_CONFIG="$("${SCRIPTS}/find_project_root.py")/devkit.json"
 fi
 readonly DEVKIT_CONFIG
 

@@ -106,7 +106,7 @@ if ! command -v gcloud &> /dev/null; then
   exit 1
 fi
 
-PROJECT_ROOT="$("${SCRIPTS}"/find_project_root)"
+PROJECT_ROOT="$("${SCRIPTS}"/find_project_root.py)"
 DEVKIT_CONFIG_PATH="${PROJECT_ROOT}/devkit.json"
 DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_PROJECT=".docker.registry.project"
 DEVKIT_CONFIG_KEY_DOCKER_REGISTRY_HOST=".docker.registry.host"
