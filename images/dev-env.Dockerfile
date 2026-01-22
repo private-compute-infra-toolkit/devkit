@@ -24,7 +24,7 @@ ARG NVM_VERSION=v0.40.3
 ARG NODE_VERSION=v22.21.1
 ARG FDFIND_VERSION=9.0.0-*
 ARG RIPGREP_VERSION=14.1.0-*
-ARG GEMINI_CLI_VERSION=0.24.0
+ARG GEMINI_CLI_VERSION=0.25.0
 ARG COMMIT_AND_TAG_VERSION_VERSION=10.1.0
 ARG SHELLCHECK_VERSION=0.9.0-*
 ARG GITLINT_VERSION=0.19.1-*
@@ -58,6 +58,20 @@ RUN npm install -g \
     commit-and-tag-version@${COMMIT_AND_TAG_VERSION_VERSION} \
    && ln -s "${NODE_BIN}/gemini" /bin/gemini \
    && ln -s "${NODE_BIN}/commit-and-tag-version" /bin/commit-and-tag-version
+
+ARG EXTRA_KEYS=""
+RUN for key_entry in ${EXTRA_KEYS}; do \
+       key_name=$(echo "$key_entry" | cut -d'=' -f1); \
+       key_url=$(echo "$key_entry" | cut -d'=' -f2-); \
+       curl -fsSL "${key_url}" | gpg --dearmor -o "/usr/share/keyrings/${key_name}.gpg"; \
+    done
+
+ARG EXTRA_REPOSITORIES=""
+RUN for repo_entry in ${EXTRA_REPOSITORIES}; do \
+      repo_name=$(echo "$repo_entry" | cut -d'=' -f1); \
+      repo_url=$(echo "$repo_entry" | cut -d'=' -f2-); \
+      echo "deb [signed-by=/usr/share/keyrings/${repo_name}.gpg] ${repo_url} bookworm main" > "/etc/apt/sources.list.d/${repo_name}.list"; \
+    done
 
 ARG EXTRA_PACKAGES=""
 RUN if [ -n "${EXTRA_PACKAGES}" ]; then \

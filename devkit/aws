@@ -16,11 +16,10 @@
 set -o errexit
 set -o nounset
 
-# To check images customization from devkit.json
-terraform --version
+DEVKIT="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
+readonly DEVKIT
 
-bazel build //...
+readonly SCRIPTS="${DEVKIT}/../scripts"
+source "${SCRIPTS}/lib_logging.sh"
 
-devkit/check_checksums
-
-bazel test --config=run_all_tests //...
+"${SCRIPTS}/build_and_run" build-env aws "$@"

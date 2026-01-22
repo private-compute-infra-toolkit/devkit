@@ -29,6 +29,20 @@ RUN apt-get update \
  && apt-get update && apt-get install -y --no-install-recommends code=${CODE_VERSION} \
  && rm -rf /var/lib/apt/lists/*
 
+ARG EXTRA_KEYS=""
+RUN for key_entry in ${EXTRA_KEYS}; do \
+       key_name=$(echo "$key_entry" | cut -d'=' -f1); \
+       key_url=$(echo "$key_entry" | cut -d'=' -f2-); \
+       curl -fsSL "${key_url}" | gpg --dearmor -o "/usr/share/keyrings/${key_name}.gpg"; \
+    done
+
+ARG EXTRA_REPOSITORIES=""
+RUN for repo_entry in ${EXTRA_REPOSITORIES}; do \
+      repo_name=$(echo "$repo_entry" | cut -d'=' -f1); \
+      repo_url=$(echo "$repo_entry" | cut -d'=' -f2-); \
+      echo "deb [signed-by=/usr/share/keyrings/${repo_name}.gpg] ${repo_url} bookworm main" > "/etc/apt/sources.list.d/${repo_name}.list"; \
+    done
+
 ARG EXTRA_PACKAGES=""
 RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
     apt-get update \

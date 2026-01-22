@@ -44,11 +44,24 @@ RUN microdnf install -y sudo passwd shadow-utils findutils && microdnf clean all
 RUN groupadd sudo \
     && echo "%sudo ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/sudo
 
-RUN microdnf install -y ca-certificates git python3 && microdnf clean all
+RUN microdnf install -y ca-certificates curl git python3 && microdnf clean all
 
 RUN export GOBIN=/usr/local/bin \
     && go install github.com/bazelbuild/bazelisk@${BAZELISK_VERSION} \
     && ln -sf ${GOBIN}/bazelisk ${GOBIN}/bazel
+
+ARG EXTRA_KEYS=""
+RUN for key_entry in ${EXTRA_KEYS}; do \
+      key_url=$(echo "$key_entry" | cut -d'=' -f2-); \
+      rpm --import "${key_url}"; \
+    done
+
+ARG EXTRA_REPOSITORIES=""
+RUN for repo_entry in ${EXTRA_REPOSITORIES}; do \
+      repo_name=$(echo "$repo_entry" | cut -d'=' -f1); \
+      repo_url=$(echo "$repo_entry" | cut -d'=' -f2-); \
+      curl -fsSL "$repo_url" -o "/etc/yum.repos.d/${repo_name}.repo"; \
+    done
 
 ARG EXTRA_PACKAGES=""
 RUN if [ -n "${EXTRA_PACKAGES}" ]; then \

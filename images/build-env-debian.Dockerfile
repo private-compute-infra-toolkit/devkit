@@ -31,6 +31,8 @@ FROM ${DEBIAN_IMAGE}
 
 ARG BAZELISK_VERSION=v1.27.0
 ARG LIBXML2_VERSION=2.*
+ARG CURL_VERSION=*
+ARG GNUPG_VERSION=*
 
 COPY --from=docker-image /usr/local/bin/docker /usr/local/bin/docker
 ENV PATH="/usr/local/bin:${PATH}"
@@ -43,7 +45,9 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
  ca-certificates \
+ curl=${CURL_VERSION} \
  git \
+ gnupg=${GNUPG_VERSION} \
  libxml2=${LIBXML2_VERSION} \
  python3 \
  sudo \
@@ -52,6 +56,20 @@ RUN apt-get update \
 ARG GOBIN=/usr/local/bin
 RUN GOBIN="${GOBIN}" go install github.com/bazelbuild/bazelisk@${BAZELISK_VERSION} \
  && ln -sf "${GOBIN}"/bazelisk "${GOBIN}"/bazel
+
+ARG EXTRA_KEYS=""
+RUN for key_entry in ${EXTRA_KEYS}; do \
+       key_name=$(echo "$key_entry" | cut -d'=' -f1); \
+       key_url=$(echo "$key_entry" | cut -d'=' -f2-); \
+       curl -fsSL "${key_url}" | gpg --dearmor -o "/usr/share/keyrings/${key_name}.gpg"; \
+    done
+
+ARG EXTRA_REPOSITORIES=""
+RUN for repo_entry in ${EXTRA_REPOSITORIES}; do \
+      repo_name=$(echo "$repo_entry" | cut -d'=' -f1); \
+      repo_url=$(echo "$repo_entry" | cut -d'=' -f2-); \
+      echo "deb [signed-by=/usr/share/keyrings/${repo_name}.gpg] ${repo_url} bookworm main" > "/etc/apt/sources.list.d/${repo_name}.list"; \
+    done
 
 ARG EXTRA_PACKAGES=""
 RUN if [ -n "${EXTRA_PACKAGES}" ]; then \

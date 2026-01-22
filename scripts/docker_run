@@ -193,6 +193,9 @@ docker run \
     --env="HOME=${DEVKIT_CONTAINER_HOME}" \
     --env="GOOGLE_CLOUD_PROJECT" \
     --env="GEMINI_API_KEY" \
+    --env="AWS_SECRET_ACCESS_KEY" \
+    --env="AWS_ACCESS_KEY_ID" \
+    --env="AWS_SESSION_TOKEN" \
     --env="GH_TOKEN" \
     --env="USER=${USER}" \
     --env="USER_ID=${USER_ID}" \

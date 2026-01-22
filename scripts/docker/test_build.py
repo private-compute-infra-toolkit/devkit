@@ -60,6 +60,10 @@ class TestBuildScript(unittest.TestCase):
         self.original_repo = build.REPO
         self.original_extra_packages_map = build.EXTRA_PACKAGES_MAP.copy()
         build.EXTRA_PACKAGES_MAP.clear()
+        self.original_extra_keys_map = build.EXTRA_KEYS_MAP.copy()
+        build.EXTRA_KEYS_MAP.clear()
+        self.original_extra_repositories_map = build.EXTRA_REPOSITORIES_MAP.copy()
+        build.EXTRA_REPOSITORIES_MAP.clear()
 
     def tearDown(self) -> None:
         """Tear down after tests."""
@@ -67,6 +71,8 @@ class TestBuildScript(unittest.TestCase):
         patch.stopall()
         build.REPO = self.original_repo
         build.EXTRA_PACKAGES_MAP = self.original_extra_packages_map
+        build.EXTRA_KEYS_MAP = self.original_extra_keys_map
+        build.EXTRA_REPOSITORIES_MAP = self.original_extra_repositories_map
 
     # --- Helpers ---
 
@@ -794,6 +800,72 @@ class TestBuildScript(unittest.TestCase):
                 tag,
                 dockerfile_path,
                 build_args=["EXTRA_PACKAGES", "pkg1=1.0 pkg2=2.0"],
+            ),
+            self._expect_push(tag),
+        )
+
+    def test_build_with_gpg_and_repos(self) -> None:
+        """
+        Scenario: gpg_keys and repositories defined in devkit.json.
+        Expected: Build args EXTRA_KEYS and EXTRA_REPOSITORIES passed.
+        """
+        self._create_devkit_json(
+            {
+                "docker": {
+                    "registry": {
+                        "host": "my-registry",
+                        "project": "project",
+                        "repository": "repo",
+                    },
+                    "images": {
+                        "test-image": {
+                            "keys": {"key1": "url1", "key2": "url2"},
+                            "repositories": {"repo1": "url1", "repo2": "url2"},
+                        }
+                    },
+                }
+            }
+        )
+
+        dockerfile_content = "FROM scratch"
+        dockerfile_path = os.path.join(self.test_dir, "test-image.Dockerfile")
+        with open(dockerfile_path, "w", encoding="utf-8") as f:
+            f.write(dockerfile_content)
+
+        hasher = hashlib.sha256()
+        with open(dockerfile_path, "rb") as f:
+            hasher.update(f.read())
+
+        # Keys in gpg_keys are stored as "name=url"
+        hasher.update(b"EXTRA_KEYS=key1=url1 key2=url2")
+        hasher.update(b"EXTRA_REPOSITORIES=repo1=url1 repo2=url2")
+
+        sha = hasher.hexdigest()
+        tag = f"my-registry/project/repo/devkit/test-image:amd64-{sha}"
+
+        self._create_deps_json({"test-image": {"deps": {}}})
+
+        self._mock_docker_calls(
+            self._call_inspect_image(tag, 1),
+            self._call_inspect_manifest(tag, 1),
+        )
+
+        self._run_main("test-image")
+
+        self._verify_docker_calls(
+            self._expect_docker_version(),
+            self._expect_buildx_version(),
+            self._expect_inspect_image(tag),
+            self._expect_inspect_manifest(tag),
+            self._expect_build(
+                tag,
+                dockerfile_path,
+                build_args=[
+                    "EXTRA_KEYS",
+                    "key1=url1 key2=url2",
+                    "EXTRA_REPOSITORIES",
+                    "repo1=url1 repo2=url2",
+                ],
             ),
             self._expect_push(tag),
         )

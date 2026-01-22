@@ -31,6 +31,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO = ""
 ARCH = "amd64"
 EXTRA_PACKAGES_MAP: Dict[str, List[str]] = {}
+EXTRA_KEYS_MAP: Dict[str, List[str]] = {}
+EXTRA_REPOSITORIES_MAP: Dict[str, List[str]] = {}
 
 
 CONFIG_SCHEMA = {
@@ -57,7 +59,15 @@ CONFIG_SCHEMA = {
                             "packages": {
                                 "type": dict,
                                 "additional_properties": {"type": str},
-                            }
+                            },
+                            "keys": {
+                                "type": dict,
+                                "additional_properties": {"type": str},
+                            },
+                            "repositories": {
+                                "type": dict,
+                                "additional_properties": {"type": str},
+                            },
                         },
                         "additional_properties": False,
                     },
@@ -175,6 +185,16 @@ def _load_images_config(config: Dict[str, Any]) -> None:
                         sys.exit(1)
                     packages.append(f"{k}={v}")
                 EXTRA_PACKAGES_MAP[img] = packages
+            if "keys" in settings:
+                keys = []
+                for k, v in settings["keys"].items():
+                    keys.append(f"{k}={v}")
+                EXTRA_KEYS_MAP[img] = keys
+            if "repositories" in settings:
+                repos = []
+                for k, v in settings["repositories"].items():
+                    repos.append(f"{k}={v}")
+                EXTRA_REPOSITORIES_MAP[img] = repos
 
 
 def load_config(config_path: str) -> None:
@@ -517,6 +537,28 @@ def process_image(
             "Build arg for %s: EXTRA_PACKAGES=%s",
             image_name,
             extra_pkgs_str,
+        )
+
+    extra_keys = EXTRA_KEYS_MAP.get(image_name, [])
+    if extra_keys:
+        extra_keys_str = " ".join(extra_keys)
+        build_args_for_manage.extend(["EXTRA_KEYS", extra_keys_str])
+        build_args_for_sha_calc.append(f"EXTRA_KEYS={extra_keys_str}")
+        logging.info(
+            "Build arg for %s: EXTRA_KEYS=%s",
+            image_name,
+            extra_keys_str,
+        )
+
+    extra_repos = EXTRA_REPOSITORIES_MAP.get(image_name, [])
+    if extra_repos:
+        extra_repos_str = " ".join(extra_repos)
+        build_args_for_manage.extend(["EXTRA_REPOSITORIES", extra_repos_str])
+        build_args_for_sha_calc.append(f"EXTRA_REPOSITORIES={extra_repos_str}")
+        logging.info(
+            "Build arg for %s: EXTRA_REPOSITORIES=%s",
+            image_name,
+            extra_repos_str,
         )
 
     build_args_for_sha_calc.sort()

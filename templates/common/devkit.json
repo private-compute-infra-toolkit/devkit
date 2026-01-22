@@ -7,18 +7,36 @@
     },
     "images": {
       "build-env": {
+        "keys": {
+          "hashicorp": "https://apt.releases.hashicorp.com/gpg"
+        },
+        "repositories": {
+          "hashicorp": "https://apt.releases.hashicorp.com"
+        },
         "packages": {
-          "tree": "2.1.*"
+          "terraform": "1.11.*"
         }
       },
       "build-env-debian": {
+        "keys": {
+          "hashicorp": "https://apt.releases.hashicorp.com/gpg"
+        },
+        "repositories": {
+          "hashicorp": "https://apt.releases.hashicorp.com"
+        },
         "packages": {
-          "tree": "2.1.*"
+          "terraform": "1.11.*"
         }
       },
       "build-env-rockylinux": {
+        "keys": {
+          "hashicorp": "https://rpm.releases.hashicorp.com/gpg"
+        },
+        "repositories": {
+          "hashicorp": "https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo"
+        },
         "packages": {
-          "tree": "1.8.*"
+          "terraform": "1.11.*"
         }
       }
     }
