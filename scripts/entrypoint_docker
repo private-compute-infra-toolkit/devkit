@@ -63,7 +63,9 @@ fi
 
 passwd -d "${USER}"
 
-groupadd -g "${DOCKER_GROUP_ID}" "${DOCKER_GROUP}"
+if ! getent group "${DOCKER_GROUP}" > /dev/null; then
+  groupadd -g "${DOCKER_GROUP_ID}" "${DOCKER_GROUP}"
+fi
 usermod -aG "${DOCKER_GROUP}" "${USER}"
 
 if ! getent group "${NOBODY_GROUP}" &>/dev/null; then

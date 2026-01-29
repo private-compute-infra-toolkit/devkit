@@ -39,7 +39,6 @@ faster, safer, and easier.
 
     ```sh
     ln -s .devkit/devkit devkit
-    echo ".devkit" >> .bazelignore
     ```
 
 1. Bootstrap the project.
@@ -66,3 +65,8 @@ faster, safer, and easier.
     devkit/dev
     devkit/vscode_ide --server # Spins up VS Code IDE in a local server at localhost:8080
     ```
+
+## Configuration
+
+The project configuration is stored in `devkit.json`. See [docs/devkit_json.md](docs/devkit_json.md)
+for details.

@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 2.8.0 (2026-01-29)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.25.1
+* **deps:** Upgrade gemini-cli to 0.25.2
+* **deps:** Upgrade gemini-cli to 0.26.0
+
+
+### Features
+
+* Drop .bazelignore creation from docs
+
+
+### Documentation
+
+* devkit.json configuration
+
 ## 2.7.0 (2026-01-22)
 
 
