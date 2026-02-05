@@ -139,6 +139,12 @@ def get_minimal_mounts(root_dir: Path, existing_mounts: list[Path]) -> set[Path]
     symlink_paths = list_external_mounts(root_dir)
     existing_paths = set(existing_mounts)
     existing_paths.update(p.resolve() for p in existing_mounts)
+
+    # If the root directory is a symlink, we need to make sure the physical
+    # directory is also mounted.
+    if root_dir.is_symlink():
+        existing_paths.add(root_dir.resolve())
+
     all_paths = symlink_paths.union(existing_paths)
     return _minimize_paths(all_paths)
 

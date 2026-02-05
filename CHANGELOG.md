@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 2.9.0 (2026-02-05)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.27.0
+
+
+### Features
+
+* Handle symlinks in project root
+* Improve status message from checksum check
+
 ## 2.8.0 (2026-01-29)
 
 

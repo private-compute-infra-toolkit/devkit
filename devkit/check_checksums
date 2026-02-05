@@ -47,6 +47,7 @@ source "${SCRIPTS}/lib_logging.sh"
 # ANSI Color Codes
 declare -r GREEN='\033[0;32m'
 declare -r RED='\033[0;31m'
+declare -r ORANGE='\033[0;33m'
 declare -r NC='\033[0m' # No Color
 
 declare -i ALL_OK=1
@@ -54,6 +55,11 @@ declare -i ALL_OK=1
 if [[ ! -f "checksums.txt" ]]; then
   printf "%bError: checksums.txt not found.%b\n" "${RED}" "${NC}" &>/dev/stderr
   exit 1
+fi
+
+if [[ -z "$(tr -d '[:space:]' < checksums.txt)" ]]; then
+  printf "%bNo files to verify. The checksums.txt is empty or only contains whitespace.%b\n" "${ORANGE}" "${NC}"
+  exit 0
 fi
 
 while IFS='  ' read -r expected_checksum filename; do

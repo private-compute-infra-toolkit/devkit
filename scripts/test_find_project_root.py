@@ -41,7 +41,8 @@ class TestFindProjectRoot(unittest.TestCase):
         (self.test_dir / "devkit").touch()
         os.chdir(self.test_dir)
 
-        result = find_project_root.find_project_root()
+        with patch("os.getenv", return_value=str(self.test_dir)):
+            result = find_project_root.find_project_root()
         self.assertEqual(result, self.test_dir)
 
     def test_finds_root_from_subdir(self) -> None:
@@ -51,15 +52,30 @@ class TestFindProjectRoot(unittest.TestCase):
         subdir.mkdir(parents=True)
         os.chdir(subdir)
 
-        result = find_project_root.find_project_root()
+        with patch("os.getenv", return_value=str(subdir)):
+            result = find_project_root.find_project_root()
 
         self.assertEqual(result, self.test_dir)
 
     def test_fails_when_not_found(self) -> None:
         """Test failure when 'devkit' is not in the tree."""
         os.chdir(self.test_dir)
-        with self.assertRaises(FileNotFoundError):
-            find_project_root.find_project_root()
+        with patch("os.getenv", return_value=str(self.test_dir)):
+            with self.assertRaises(FileNotFoundError):
+                find_project_root.find_project_root()
+
+    def test_fallback_to_cwd_when_pwd_missing(self) -> None:
+        """Test fallback to Path.cwd() when PWD is not set."""
+        (self.test_dir / "devkit").touch()
+        os.chdir(self.test_dir)
+
+        def getenv_side_effect(_: str, default: str | None = None) -> str | None:
+            return default
+
+        with patch("os.getenv", side_effect=getenv_side_effect):
+            result = find_project_root.find_project_root()
+
+        self.assertEqual(result, self.test_dir)
 
 
 class TestFindProjectRootMain(unittest.TestCase):

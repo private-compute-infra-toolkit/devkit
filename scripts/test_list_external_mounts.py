@@ -45,6 +45,16 @@ class ListExternalMountsTest(unittest.TestCase):
         """
         self.test_dir_obj.cleanup()
 
+    def test_root_dir_is_symlink(self) -> None:
+        """Test when the root directory itself is a symlink."""
+        real_scan_dir = self.test_dir / "real_scan"
+        real_scan_dir.mkdir()
+        symlink_scan_dir = self.test_dir / "symlink_scan"
+        symlink_scan_dir.symlink_to(real_scan_dir)
+
+        result = list_external_mounts.get_minimal_mounts(symlink_scan_dir, [])
+        self.assertEqual(result, {real_scan_dir.resolve()})
+
     def test_symlink_to_external_dir(self) -> None:
         """Test symlink to an external directory is detected."""
         (self.scan_dir / "link_to_external_dir").symlink_to(self.external_dir)

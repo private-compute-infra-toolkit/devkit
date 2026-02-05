@@ -19,6 +19,7 @@ It keeps moving up in the directory tree till it finds a /devkit directory.
 If no /devkit directory provided, it return FileNotFoundError.
 """
 import sys
+import os
 from pathlib import Path
 
 
@@ -28,7 +29,8 @@ def find_project_root() -> Path:
     It starts from the current directory and goes up until it finds a directory
     containing a 'devkit' file, directory, or symlink.
     """
-    current_dir = Path.cwd()
+    # Use PWD if available to preserve symlinks
+    current_dir = Path(os.getenv("PWD", str(Path.cwd())))
 
     # Check current dir and all parents
     for path in [current_dir] + list(current_dir.parents):
