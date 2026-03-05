@@ -24,10 +24,11 @@ ARG NVM_VERSION=v0.40.3
 ARG NODE_VERSION=v22.21.1
 ARG FDFIND_VERSION=9.0.0-*
 ARG RIPGREP_VERSION=14.1.0-*
-ARG GEMINI_CLI_VERSION=0.29.2
+ARG GEMINI_CLI_VERSION=0.32.1
 ARG COMMIT_AND_TAG_VERSION_VERSION=10.1.0
-ARG SHELLCHECK_VERSION=0.9.0-*
 ARG GITLINT_VERSION=0.19.1-*
+ARG SHELLCHECK_VERSION=0.9.0-*
+ARG VIM_VERSION=2:9.1.*
 
 SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
 
@@ -36,6 +37,7 @@ RUN apt-get update \
    fd-find=${FDFIND_VERSION} \
    gitlint=${GITLINT_VERSION} \
    neovim=${NEOVIM_VERSION} \
+   vim=${VIM_VERSION} \
    pre-commit=${PRE_COMMIT_VERSION} \
    ripgrep=${RIPGREP_VERSION} \
    shellcheck=${SHELLCHECK_VERSION} \
@@ -79,3 +81,5 @@ RUN if [ -n "${EXTRA_PACKAGES}" ]; then \
     && apt-get install -y --no-install-recommends ${EXTRA_PACKAGES} \
     && rm -rf /var/lib/apt/lists/*; \
     fi
+
+RUN update-alternatives --set vim /usr/bin/vim.basic

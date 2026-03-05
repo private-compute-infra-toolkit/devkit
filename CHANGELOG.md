@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 2.12.0 (2026-03-05)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.29.3
+* **deps:** Upgrade gemini-cli to 0.29.5
+* **deps:** Upgrade gemini-cli to 0.29.7
+* **deps:** Upgrade gemini-cli to 0.30.0
+* **deps:** Upgrade gemini-cli to 0.31.0
+* **deps:** Upgrade gemini-cli to 0.32.1
+
+
+### Features
+
+* **devkit:** add vim to development environment
+* Enable terminal with colors by default
+
 ## 2.11.0 (2026-02-19)
 
 

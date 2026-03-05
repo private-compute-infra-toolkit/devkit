@@ -66,6 +66,7 @@ declare -ar HOME_DIRS=(
   ".local/share/nvim"
   ".local/state"
   ".npm"
+  ".vim"
 )
 
 declare -r DOCKER_SOCKET="/var/run/docker.sock"
@@ -202,6 +203,8 @@ docker run \
     --env="GROUP=${GROUP}" \
     --env="GROUP_ID=${GROUP_ID}" \
     --env="TMPDIR=${DEVKIT_CONTAINER_TMP_DIR}" \
+    --env="TERM=xterm-256color" \
+    --env="COLORTERM" \
     --env="DOCKER_GROUP=${DOCKER_GROUP}" \
     --env="DOCKER_GROUP_ID=${DOCKER_GROUP_ID}" \
     --env="NOBODY_GROUP=${NOBODY_GROUP}" \
