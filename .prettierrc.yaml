@@ -23,3 +23,6 @@ overrides:
     options:
       tabWidth: 4
       printWidth: 100
+  - files: 'docs/**/*.md'
+    options:
+      printWidth: 80

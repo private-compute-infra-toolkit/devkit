@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test cases for the bootstrap script"""
+
 import io
 import os
 from pathlib import Path

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test cases for the bootstrap script"""
+
 import unittest
 from unittest.mock import patch, MagicMock
 import sys

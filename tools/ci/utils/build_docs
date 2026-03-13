@@ -98,6 +98,9 @@ ln -s .devkit/devkit devkit
 devkit/bootstrap --templates-root .devkit --template docs
 if [[ -n "${KOKORO_ARTIFACTS_DIR:-}" ]]; then
   cp -r "${DOCS}"/templates "${KOKORO_ARTIFACTS_DIR}"/docs
+  declare -r PAGES="${KOKORO_ARTIFACTS_DIR}"/docs/pages
+  mkdir -p "${PAGES}"
+  cp -r "${DOCS}"/devkit_json.md "${PAGES}"
 fi
 if [[ ${DEBUG} -ne 1 ]]; then
   rm -rf "${DOCS}"

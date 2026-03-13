@@ -18,6 +18,7 @@ This script finds project root.
 It keeps moving up in the directory tree till it finds a /devkit directory.
 If no /devkit directory provided, it return FileNotFoundError.
 """
+
 import sys
 import os
 from pathlib import Path

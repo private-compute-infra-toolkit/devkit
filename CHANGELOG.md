@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 2.13.0 (2026-03-13)
+
+
+### Dependencies
+
+* **deps:** Autoupdate pre-commit hooks
+* **deps:** Bump github actions versions
+* **deps:** Bump version of mypy pre-commit hook to 1.19.1
+* **deps:** Upgrade gemini-cli to 0.33.0
+* **deps:** Upgrade gemini-cli to 0.33.1
+* **deps:** Upgrade ripgrep to 15.1.0
+
+
+### Features
+
+* Install ripgrep using github debian package
+
 ## 2.12.0 (2026-03-05)
 
 

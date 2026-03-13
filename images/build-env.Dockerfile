@@ -36,9 +36,9 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
+    groff=${GROFF_VERSION} \
     libxml2=${LIBXML2_VERSION} \
     unzip=${UNZIP_VERSION} \
-    groff=${GROFF_VERSION} \
  && rm -rf /var/lib/apt/lists/*
 
 ADD https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz /tmp/gcloud.tar.gz

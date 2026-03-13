@@ -17,18 +17,18 @@ ARG BASE
 # hadolint ignore=DL3006
 FROM ${BASE}
 
-ARG WGET_VERSION=1.21.4-*
-ARG PRE_COMMIT_VERSION=3.6.2-*
-ARG NEOVIM_VERSION=0.9.5-*
-ARG NVM_VERSION=v0.40.3
-ARG NODE_VERSION=v22.21.1
-ARG FDFIND_VERSION=9.0.0-*
-ARG RIPGREP_VERSION=14.1.0-*
-ARG GEMINI_CLI_VERSION=0.32.1
 ARG COMMIT_AND_TAG_VERSION_VERSION=10.1.0
+ARG FDFIND_VERSION=9.0.0-*
+ARG GEMINI_CLI_VERSION=0.33.1
 ARG GITLINT_VERSION=0.19.1-*
+ARG NEOVIM_VERSION=0.9.5-*
+ARG NODE_VERSION=v22.21.1
+ARG NVM_VERSION=v0.40.3
+ARG PRE_COMMIT_VERSION=3.6.2-*
+ARG RIPGREP_VERSION=15.1.0
 ARG SHELLCHECK_VERSION=0.9.0-*
 ARG VIM_VERSION=2:9.1.*
+ARG WGET_VERSION=1.21.4-*
 
 SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
 
@@ -37,12 +37,14 @@ RUN apt-get update \
    fd-find=${FDFIND_VERSION} \
    gitlint=${GITLINT_VERSION} \
    neovim=${NEOVIM_VERSION} \
-   vim=${VIM_VERSION} \
    pre-commit=${PRE_COMMIT_VERSION} \
-   ripgrep=${RIPGREP_VERSION} \
    shellcheck=${SHELLCHECK_VERSION} \
+   vim=${VIM_VERSION} \
    wget=${WGET_VERSION} \
    && rm -rf /var/lib/apt/lists/*
+
+ADD "https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/ripgrep_${RIPGREP_VERSION}-1_amd64.deb" /tmp/ripgrep.deb
+RUN dpkg -i /tmp/ripgrep.deb
 
 ARG NVM_DIR=/usr/local/nvm
 ADD https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh /tmp/nvm_install.sh

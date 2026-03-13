@@ -18,6 +18,7 @@ This script lists external mounts, including intermediate symlinks.
 It takes an optional command-line argument to specify the root directory for the search.
 If not provided, it uses the current working directory.
 """
+
 import os
 from pathlib import Path
 import argparse

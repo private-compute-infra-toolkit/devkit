@@ -14,6 +14,7 @@
 """
 Tests for list_external_mounts.
 """
+
 import tempfile
 import unittest
 from io import StringIO

@@ -1,8 +1,8 @@
 # devkit.json Configuration
 
-The `devkit.json` file is the central configuration file for the DevKit. It allows you to customize
-various aspects of the toolkit, primarily focusing on Docker image management and dependency
-versions.
+The `devkit.json` file is the central configuration file for the DevKit. It
+allows you to customize various aspects of the toolkit, primarily focusing on
+Docker image management and dependency versions.
 
 ## Configuration Parameters
 
