@@ -45,7 +45,8 @@ mkdir -p "${MICROSOFT_CACHE_HOME}"
 mkdir -p "${GOOGLE_VSCODE_EXTENSION_CACHE_HOME}"
 mkdir -p "${CLOUD_CODE_CACHE_HOME}"
 
-"${SCRIPTS}/docker_run" \
+"${SCRIPTS}/docker_run.py" \
+  --devkit-log-file "${DEVKIT_LOG_FILE}" \
   "--volume=${CODE_SERVER_CONFIG_HOME}:${CODE_SERVER_CONFIG_HOME}" \
   "--volume=${CODE_SERVER_SHARE_LOCAL_HOME}:${CODE_SERVER_SHARE_LOCAL_HOME}" \
   "--volume=${MICROSOFT_CACHE_HOME}:${MICROSOFT_CACHE_HOME}" \

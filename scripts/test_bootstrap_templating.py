@@ -19,7 +19,6 @@ import sys
 from pathlib import Path
 import tempfile
 import shutil
-from typing import Dict
 
 # Ensure the bootstrap module can be imported.
 sys.path.insert(0, str(Path(__file__).parent.resolve(strict=True)))
@@ -44,7 +43,7 @@ class TestBootstrapTemplating(unittest.TestCase):
     def test_copy_and_template(self) -> None:
         """Tests that files are correctly templated."""
         template_content = "Hello, {{ name }}!"
-        context: Dict[str, str] = {"name": "World"}
+        context: dict[str, str] = {"name": "World"}
         expected_content = "Hello, World!\n"
         # Create a dummy template file
         with (self.src_dir / "test.txt").open("w", encoding="utf-8") as f:
@@ -94,7 +93,7 @@ class TestBootstrapTemplating(unittest.TestCase):
         main_template_content = "This is the main file.\n{% include 'included.txt' %}"
         included_content = "This is the included file."
         expected_content = "This is the main file.\nThis is the included file.\n"
-        context: Dict[str, str] = {}
+        context: dict[str, str] = {}
 
         # Create dummy template files
         with (self.src_dir / "main.txt").open("w", encoding="utf-8") as f:
@@ -115,7 +114,7 @@ class TestBootstrapTemplating(unittest.TestCase):
     def test_copy_and_template_syntax_error(self, mock_print: MagicMock) -> None:
         """Tests that template syntax errors are handled."""
         template_content = "Hello, {{ name }!"  # Invalid syntax
-        context: Dict[str, str] = {"name": "World"}
+        context: dict[str, str] = {"name": "World"}
         src_file_path = self.src_dir / "test.txt"
         with src_file_path.open("w", encoding="utf-8") as f:
             f.write(template_content)
@@ -131,7 +130,7 @@ class TestBootstrapTemplating(unittest.TestCase):
     def test_copy_and_template_undefined_error(self, mock_print: MagicMock) -> None:
         """Tests that undefined variable errors are handled."""
         template_content = "Hello, {{ name }}!"
-        context: Dict[str, str] = {}  # Missing 'name'
+        context: dict[str, str] = {}  # Missing 'name'
         src_file_path = self.src_dir / "test.txt"
         with src_file_path.open("w", encoding="utf-8") as f:
             f.write(template_content)

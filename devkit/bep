@@ -33,4 +33,4 @@ DEV_ENV_IMAGE="$("${SCRIPTS}/docker/build.py" dev-env --print-tag --search-path 
 }
 readonly DEV_ENV_IMAGE
 
-"${SCRIPTS}/docker_run" "${DEV_ENV_IMAGE}" python3 "${SCRIPTS}/bep.py" "$@"
+"${SCRIPTS}/docker_run.py" --devkit-log-file "${DEVKIT_LOG_FILE}" "${DEV_ENV_IMAGE}" python3 "${SCRIPTS}/bep.py" "$@"

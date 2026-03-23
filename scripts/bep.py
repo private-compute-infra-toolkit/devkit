@@ -17,6 +17,7 @@
 This file provides necessary logic to generate BEP.
 """
 
+from collections.abc import Sequence
 import argparse
 import subprocess
 import sys
@@ -24,7 +25,7 @@ import tempfile
 from pathlib import Path
 
 
-def run_command(cmd_args: list[str], capture_output: bool = False) -> str:
+def run_command(cmd_args: Sequence[str], capture_output: bool = False) -> str:
     """Run commands and handles exceptions.
 
     Args:
@@ -109,7 +110,7 @@ def _process_target_and_save(
 
 
 def generate_bazel_events_folder(
-    targets: list[str],
+    targets: Sequence[str],
     command: str,
     output_dir: Path,
 ) -> None:

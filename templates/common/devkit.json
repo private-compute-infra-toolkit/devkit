@@ -3,7 +3,8 @@
     "registry": {
         "host": "",
         "project": "",
-        "repository": ""
+        "repository": "",
+        "namespace": "demo"
     },
     "images": {
       "build-env": {

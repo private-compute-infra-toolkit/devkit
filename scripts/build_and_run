@@ -51,4 +51,4 @@ IMAGE_URI="$(${BUILD_CMD})" || {
 }
 readonly IMAGE_URI
 
-"${SCRIPTS}/docker_run" "${IMAGE_URI}" "$@"
+"${SCRIPTS}/docker_run.py" --devkit-log-file "${DEVKIT_LOG_FILE}" "${IMAGE_URI}" "$@"

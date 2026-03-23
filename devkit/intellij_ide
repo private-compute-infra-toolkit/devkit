@@ -49,7 +49,8 @@ mkdir -p "${HOME_JAVA}"
 
 DISPLAY_SOCKET="/tmp/.X11-unix"
 
-"${SCRIPTS}/docker_run" \
+"${SCRIPTS}/docker_run.py" \
+  --devkit-log-file "${DEVKIT_LOG_FILE}" \
   --volume="${JETBRAINS_CONFIG_HOME}:${JETBRAINS_CONFIG_HOME}" \
   --volume="${JETBRAINS_CACHE_HOME}:${JETBRAINS_CACHE_HOME}" \
   --volume="${FONTCONFIG_CACHE_HOME}:${FONTCONFIG_CACHE_HOME}" \

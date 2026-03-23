@@ -13,6 +13,7 @@ Docker image management and dependency versions.
 | `docker.registry.host`                    | String | The hostname of the container registry (e.g., `us-docker.pkg.dev`).                                                                            |
 | `docker.registry.project`                 | String | The project ID within the registry (e.g., `my-project`).                                                                                       |
 | `docker.registry.repository`              | String | The repository name within the project (e.g., `my-repo`).                                                                                      |
+| `docker.registry.namespace`               | String | The sub-namespace for Docker images. It will be prepended with `devkit/`. Defaults to `devkit/` if not specified.                              |
 | `docker.run`                              | List   | A list of additional commands or arguments (usage depends on context).                                                                         |
 | `docker.images`                           | Map    | A dictionary where keys are image names (e.g., `build-env`, `build-env-debian`) and values are their specific configurations.                  |
 | `docker.images.<image_name>`              | Object | Configuration for a specific Docker image.                                                                                                     |
@@ -28,7 +29,8 @@ Docker image management and dependency versions.
         "registry": {
             "host": "us-docker.pkg.dev",
             "project": "my-project",
-            "repository": "my-repo"
+            "repository": "my-repo",
+            "namespace": "demo"
         },
         "images": {
             "build-env": {

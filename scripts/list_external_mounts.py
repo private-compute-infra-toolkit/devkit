@@ -22,6 +22,7 @@ If not provided, it uses the current working directory.
 import os
 from pathlib import Path
 import argparse
+from collections.abc import MutableSet, MutableSequence, Sequence, Set
 
 
 def list_external_mounts(scan_dir: Path) -> set[Path]:
@@ -59,7 +60,10 @@ def list_external_mounts(scan_dir: Path) -> set[Path]:
 
 
 def _process_symlink(
-    path: Path, scan_dir_abs: Path, external_paths: set[Path], worklist: list[Path]
+    path: Path,
+    scan_dir_abs: Path,
+    external_paths: MutableSet[Path],
+    worklist: MutableSequence[Path],
 ) -> None:
     """
     Resolves a symlink chain starting from `path`, adding any external paths
@@ -101,13 +105,13 @@ def _process_symlink(
         current_path = abs_target
 
 
-def _minimize_paths(paths: set[Path]) -> set[Path]:
+def _minimize_paths(paths: Set[Path]) -> Set[Path]:
     """
     Given a set of paths, returns a new set containing only the minimal parent paths.
     For example: {'/a/b', '/a/b/c', '/d'} -> {'/a/b', '/d'}
     """
     # Sort paths to ensure that when comparing, we are consistent.
-    sorted_paths = sorted(list(paths))
+    sorted_paths = sorted(paths)
     minimal_paths: set[Path] = set()
 
     for path in sorted_paths:
@@ -125,7 +129,7 @@ def _minimize_paths(paths: set[Path]) -> set[Path]:
     return minimal_paths
 
 
-def get_minimal_mounts(root_dir: Path, existing_mounts: list[Path]) -> set[Path]:
+def get_minimal_mounts(root_dir: Path, existing_mounts: Sequence[Path]) -> Set[Path]:
     """
     Gathers all external mounts and minimizes them.
 

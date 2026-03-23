@@ -114,4 +114,4 @@ else
   COMMAND+=(--disable-dev-shm-usage --wait "${PWD}")
 fi
 
-"${SCRIPTS}/docker_run" "${ARGS[@]}" "${VSCODE_IDE_IMAGE}" "${COMMAND[@]}"
+"${SCRIPTS}/docker_run.py" --devkit-log-file "${DEVKIT_LOG_FILE}" "${ARGS[@]}" "${VSCODE_IDE_IMAGE}" "${COMMAND[@]}"

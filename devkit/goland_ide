@@ -43,7 +43,8 @@ mkdir -p "${JETBRAINS_SHARE_LOCAL_HOME}"
 
 DISPLAY_SOCKET="/tmp/.X11-unix"
 
-"${SCRIPTS}/docker_run" \
+"${SCRIPTS}/docker_run.py" \
+  --devkit-log-file "${DEVKIT_LOG_FILE}" \
   --volume="${JETBRAINS_CONFIG_HOME}:${JETBRAINS_CONFIG_HOME}" \
   --volume="${JETBRAINS_CACHE_HOME}:${JETBRAINS_CACHE_HOME}" \
   --volume="${JETBRAINS_SHARE_LOCAL_HOME}:${JETBRAINS_SHARE_LOCAL_HOME}" \

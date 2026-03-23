@@ -15,6 +15,7 @@
 
 """Test cases for the build script"""
 
+from collections.abc import Sequence
 import hashlib
 import json
 import os
@@ -23,7 +24,8 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from typing import Any, List, Optional, Type, Union
+from pathlib import Path
+from typing import Any, Optional, Union
 from unittest.mock import ANY, MagicMock, call, patch
 
 # Ensure the package root is in the path for imports
@@ -37,10 +39,10 @@ class TestBuildScript(unittest.TestCase):
 
     def setUp(self) -> None:
         """Set up for tests."""
-        self.test_dir = tempfile.mkdtemp()
+        self.test_dir = Path(tempfile.mkdtemp())
         self.context_path = self.test_dir
-        self.config_path = os.path.join(self.test_dir, "devkit.json")
-        self.deps_path = os.path.join(self.test_dir, "deps.json")
+        self.config_path = self.test_dir / "devkit.json"
+        self.deps_path = self.test_dir / "deps.json"
 
         self.patcher_run = patch("subprocess.run")
         self.mock_run = self.patcher_run.start()
@@ -57,22 +59,10 @@ class TestBuildScript(unittest.TestCase):
         self.patcher_logging_error = patch("logging.error")
         self.mock_logging_error = self.patcher_logging_error.start()
 
-        self.original_repo = build.REPO
-        self.original_extra_packages_map = build.EXTRA_PACKAGES_MAP.copy()
-        build.EXTRA_PACKAGES_MAP.clear()
-        self.original_extra_keys_map = build.EXTRA_KEYS_MAP.copy()
-        build.EXTRA_KEYS_MAP.clear()
-        self.original_extra_repositories_map = build.EXTRA_REPOSITORIES_MAP.copy()
-        build.EXTRA_REPOSITORIES_MAP.clear()
-
     def tearDown(self) -> None:
         """Tear down after tests."""
         shutil.rmtree(self.test_dir)
         patch.stopall()
-        build.REPO = self.original_repo
-        build.EXTRA_PACKAGES_MAP = self.original_extra_packages_map
-        build.EXTRA_KEYS_MAP = self.original_extra_keys_map
-        build.EXTRA_REPOSITORIES_MAP = self.original_extra_repositories_map
 
     # --- Helpers ---
 
@@ -95,10 +85,10 @@ class TestBuildScript(unittest.TestCase):
         self,
         image_name: str,
         content: str,
-        build_args_for_sha: Optional[List[str]] = None,
-    ) -> tuple[str, str, str]:
+        build_args_for_sha: Optional[Sequence[str]] = None,
+    ) -> tuple[Path, str, str]:
         """Creates a Dockerfile and calculates its content-addressable tag."""
-        dockerfile_path = os.path.join(self.test_dir, f"{image_name}.Dockerfile")
+        dockerfile_path = self.test_dir / f"{image_name}.Dockerfile"
         with open(dockerfile_path, "w", encoding="utf-8") as f:
             f.write(content)
 
@@ -126,8 +116,8 @@ class TestBuildScript(unittest.TestCase):
         return (("docker", "buildx", "version"), rc)
 
     def _call_inspect_image(
-        self, tag: Any, rc: Union[int, Type[Exception]] = 1
-    ) -> tuple[tuple[str, ...], Union[int, Type[Exception]]]:
+        self, tag: Any, rc: Union[int, type[Exception]] = 1
+    ) -> tuple[tuple[str, ...], Union[int, type[Exception]]]:
         return (("docker", "image", "inspect", tag), rc)
 
     def _call_inspect_manifest(
@@ -146,8 +136,8 @@ class TestBuildScript(unittest.TestCase):
                 "--tag",
                 tag,
                 "--file",
-                dockerfile,
-                context,
+                str(dockerfile),
+                str(context),
             ),
             rc,
         )
@@ -183,14 +173,14 @@ class TestBuildScript(unittest.TestCase):
 
     def _run_main(
         self,
-        target_image: Optional[str] = None,
-        log_file: Optional[str] = None,
-        extra_args: Optional[List[str]] = None,
-        config_path: Optional[str] = None,
+        target_images: Optional[Sequence[str]] = None,
+        log_file: Optional[Path] = None,
+        extra_args: Optional[Sequence[str]] = None,
+        config_path: Optional[Path] = None,
     ) -> None:
         """Helper to patch sys.argv and run the main build script."""
         if log_file is None:
-            log_file = os.path.join(self.test_dir, "build.log")
+            log_file = self.test_dir / "build.log"
 
         if config_path is None:
             config_path = self.config_path
@@ -198,19 +188,35 @@ class TestBuildScript(unittest.TestCase):
         args = [
             "build.py",
             "--search-path",
-            self.test_dir,
+            str(self.test_dir),
             "--config",
-            config_path,
+            str(config_path),
             "--log-file",
-            log_file,
+            str(log_file),
         ]
         if extra_args:
             args.extend(extra_args)
-        if target_image:
-            args.insert(1, target_image)
+
+        if target_images:
+            args[1:1] = target_images
 
         with patch("sys.argv", args):
             build.main()
+
+    def _call_get_all_docker_image_tags(
+        self,
+        target_images: Optional[Sequence[str]] = None,
+    ) -> Sequence[str]:
+        """Helper to call build.get_all_docker_image_tags."""
+        return build.get_all_docker_image_tags(
+            self.config_path, [self.test_dir], target_images
+        )
+
+    def _call_get_image_prefix(self, config_path: Optional[Path] = None) -> str:
+        """Helper to call build.get_image_prefix."""
+        if config_path is None:
+            config_path = self.config_path
+        return build.get_image_prefix(config_path)
 
     # --- Expectation Helpers ---
 
@@ -243,20 +249,23 @@ class TestBuildScript(unittest.TestCase):
     def _expect_build(
         self,
         tag: str,
-        dockerfile: str,
-        context: Optional[str] = None,
-        build_args: Optional[List[str]] = None,
+        dockerfile: Path,
+        context: Optional[Path] = None,
+        build_args: Optional[Sequence[str]] = None,
+        no_cache: bool = False,
     ) -> Any:
         """Expected call for docker buildx build."""
         if context is None:
             context = self.context_path
-        cmd = ["docker", "buildx", "build", "--tag", tag, "--file", dockerfile]
+        cmd = ["docker", "buildx", "build", "--tag", tag, "--file", str(dockerfile)]
+        if no_cache:
+            cmd.append("--no-cache")
         if build_args:
             for i in range(0, len(build_args), 2):
                 cmd.append("--build-arg")
                 cmd.append(f"{build_args[i]}={build_args[i + 1]}")
 
-        cmd.append(context)
+        cmd.append(str(context))
 
         return call(cmd, check=True, text=True, capture_output=True)
 
@@ -337,7 +346,7 @@ class TestBuildScript(unittest.TestCase):
         self._create_deps_json({})
         self._mock_docker_calls()
 
-        self._run_main(config_path="nonexistent.json")
+        self._run_main(config_path=Path("nonexistent.json"))
 
         self._verify_log_info("devkit.json config file not found: %s", ANY)
 
@@ -435,7 +444,7 @@ class TestBuildScript(unittest.TestCase):
         self._mock_docker_calls()
 
         with self.assertRaises(SystemExit) as cm:
-            self._run_main("test-image")
+            self._run_main(["test-image"])
 
         self.assertEqual(cm.exception.code, 1)
         self._verify_log_error(
@@ -460,7 +469,7 @@ class TestBuildScript(unittest.TestCase):
                 self._call_docker_version(), self._call_buildx_version()
             )
 
-            self._run_main(config_path="devkit.json")
+            self._run_main(config_path=Path("devkit.json"))
         finally:
             os.chdir(cwd)
 
@@ -476,7 +485,9 @@ class TestBuildScript(unittest.TestCase):
             self._run_main(extra_args=["--print-tag"])
 
         self.assertEqual(cm.exception.code, 1)
-        self._verify_log_error("--print-tag requires a target_image to be specified.")
+        self._verify_log_error(
+            "--print-tag requires exactly one target_image to be specified."
+        )
 
     def test_print_tag_invalid_target(self) -> None:
         """Test that --print-tag fails if the target image is invalid."""
@@ -487,7 +498,7 @@ class TestBuildScript(unittest.TestCase):
         )
 
         with self.assertRaises(SystemExit) as cm:
-            self._run_main(target_image="invalid-image", extra_args=["--print-tag"])
+            self._run_main(target_images=["invalid-image"], extra_args=["--print-tag"])
 
         self.assertEqual(cm.exception.code, 1)
         self._verify_log_error(
@@ -507,7 +518,7 @@ class TestBuildScript(unittest.TestCase):
 
         with patch("builtins.print") as mock_print:
             with self.assertRaises(SystemExit) as cm:
-                self._run_main("test-image", extra_args=["--print-tag"])
+                self._run_main(["test-image"], extra_args=["--print-tag"])
             self.assertEqual(cm.exception.code, 0)
             mock_print.assert_any_call(tag)
 
@@ -545,7 +556,7 @@ class TestBuildScript(unittest.TestCase):
             self._call_inspect_image(tag, 0),
         )
 
-        self._run_main("test-image")
+        self._run_main(["test-image"])
 
         self._verify_docker_calls(
             self._expect_docker_version(),
@@ -569,7 +580,7 @@ class TestBuildScript(unittest.TestCase):
             self._call_inspect_image(tag, 1),
         )
 
-        self._run_main("test-image")
+        self._run_main(["test-image"])
 
         self._verify_docker_calls(
             self._expect_docker_version(),
@@ -593,7 +604,7 @@ class TestBuildScript(unittest.TestCase):
             self._call_inspect_manifest(tag, 0),
         )
 
-        self._run_main("test-image")
+        self._run_main(["test-image"])
 
         self._verify_docker_calls(
             self._expect_docker_version(),
@@ -618,7 +629,7 @@ class TestBuildScript(unittest.TestCase):
             self._call_inspect_manifest(tag, 1),
         )
 
-        self._run_main("test-image")
+        self._run_main(["test-image"])
 
         self._verify_docker_calls(
             self._expect_docker_version(),
@@ -644,13 +655,85 @@ class TestBuildScript(unittest.TestCase):
             self._call_inspect_image(tag, 1),
         )
 
-        self._run_main("test-image")
+        self._run_main(["test-image"])
 
         self._verify_docker_calls(
             self._expect_docker_version(),
             self._expect_buildx_version(),
             self._expect_inspect_image(tag),
             self._expect_build(tag, dockerfile_path),
+        )
+        self._verify_stderr(f"Building image: {tag}...")
+
+    def test_build_cli_local_flag_only(self) -> None:
+        """
+        Scenario: --local flag used.
+        Expected: Build if missing, but never push, even if deps.json says local=False.
+        """
+        self._create_devkit_json()
+        dockerfile_path, tag, _ = self._create_dockerfile("test-image", "FROM scratch")
+        self._create_deps_json({"test-image": {"deps": {}, "local": False}})
+
+        self._mock_docker_calls(
+            self._call_inspect_image(tag, 1),
+        )
+
+        self._run_main(["test-image"], extra_args=["--local"])
+
+        self._verify_docker_calls(
+            self._expect_docker_version(),
+            self._expect_buildx_version(),
+            self._expect_inspect_image(tag),
+            self._expect_build(tag, dockerfile_path),
+        )
+        self._verify_stderr(f"Building image: {tag}...")
+
+    def test_build_cli_no_cache_flag_only(self) -> None:
+        """
+        Scenario: --no-cache flag used.
+        Expected: Rebuild and push, skipping existence checks.
+        """
+        self._create_devkit_json()
+        dockerfile_path, tag, _ = self._create_dockerfile("test-image", "FROM scratch")
+        self._create_deps_json({"test-image": {"deps": {}, "local": False}})
+
+        # Image exists locally and remotely, but we expect build and push anyway
+        self._mock_docker_calls(
+            self._call_inspect_image(tag, 0),
+            self._call_inspect_manifest(tag, 0),
+        )
+
+        self._run_main(["test-image"], extra_args=["--no-cache"])
+
+        self._verify_docker_calls(
+            self._expect_docker_version(),
+            self._expect_buildx_version(),
+            self._expect_build(tag, dockerfile_path, no_cache=True),
+            self._expect_push(tag),
+        )
+        self._verify_stderr(f"Building image: {tag}...")
+        self._verify_stderr(f"Pushing image: {tag}...")
+
+    def test_build_cli_both_flags(self) -> None:
+        """
+        Scenario: --no-cache and --local flags used together.
+        Expected: Rebuild always, but no push, even if deps.json says local=False.
+        """
+        self._create_devkit_json()
+        dockerfile_path, tag, _ = self._create_dockerfile("test-image", "FROM scratch")
+        self._create_deps_json({"test-image": {"deps": {}, "local": False}})
+
+        # Image exists locally, but we expect build anyway. No push expected.
+        self._mock_docker_calls(
+            self._call_inspect_image(tag, 0),
+        )
+
+        self._run_main(["test-image"], extra_args=["--no-cache", "--local"])
+
+        self._verify_docker_calls(
+            self._expect_docker_version(),
+            self._expect_buildx_version(),
+            self._expect_build(tag, dockerfile_path, no_cache=True),
         )
         self._verify_stderr(f"Building image: {tag}...")
 
@@ -669,7 +752,7 @@ class TestBuildScript(unittest.TestCase):
             self._call_inspect_image(tag, 1),
         )
 
-        self._run_main("test-image")
+        self._run_main(["test-image"])
 
         self._verify_log_warning("Docker registry is not defined.")
         self._verify_docker_calls(
@@ -703,7 +786,7 @@ class TestBuildScript(unittest.TestCase):
             self._call_inspect_manifest(child_tag, 1),
         )
 
-        self._run_main("child")
+        self._run_main(["child"])
 
         self._verify_docker_calls(
             self._expect_docker_version(),
@@ -767,7 +850,7 @@ class TestBuildScript(unittest.TestCase):
 
         # Manually calculate expected SHA with EXTRA_PACKAGES
         dockerfile_content = "FROM scratch"
-        dockerfile_path = os.path.join(self.test_dir, "test-image.Dockerfile")
+        dockerfile_path = self.test_dir / "test-image.Dockerfile"
         with open(dockerfile_path, "w", encoding="utf-8") as f:
             f.write(dockerfile_content)
 
@@ -789,7 +872,7 @@ class TestBuildScript(unittest.TestCase):
             self._call_inspect_manifest(tag, 1),
         )
 
-        self._run_main("test-image")
+        self._run_main(["test-image"])
 
         self._verify_docker_calls(
             self._expect_docker_version(),
@@ -801,6 +884,55 @@ class TestBuildScript(unittest.TestCase):
                 dockerfile_path,
                 build_args=["EXTRA_PACKAGES", "pkg1=1.0 pkg2=2.0"],
             ),
+            self._expect_push(tag),
+        )
+
+    def test_build_with_namespace(self) -> None:
+        """
+        Scenario: namespace defined in devkit.json.
+        Expected: Image tag uses the specified namespace.
+        """
+        self._create_devkit_json(
+            {
+                "docker": {
+                    "registry": {
+                        "host": "my-registry",
+                        "project": "project",
+                        "repository": "repo",
+                        "namespace": "custom/namespace",
+                    }
+                }
+            }
+        )
+
+        dockerfile_content = "FROM scratch"
+        dockerfile_path = self.test_dir / "test-image.Dockerfile"
+        with open(dockerfile_path, "w", encoding="utf-8") as f:
+            f.write(dockerfile_content)
+
+        hasher = hashlib.sha256()
+        with open(dockerfile_path, "rb") as f:
+            hasher.update(f.read())
+        sha = hasher.hexdigest()
+
+        # Expected tag uses the custom namespace with 'devkit/' prefix
+        tag = f"my-registry/project/repo/devkit/custom/namespace/test-image:amd64-{sha}"
+
+        self._create_deps_json({"test-image": {"deps": {}}})
+
+        self._mock_docker_calls(
+            self._call_inspect_image(tag, 1),
+            self._call_inspect_manifest(tag, 1),
+        )
+
+        self._run_main(["test-image"])
+
+        self._verify_docker_calls(
+            self._expect_docker_version(),
+            self._expect_buildx_version(),
+            self._expect_inspect_image(tag),
+            self._expect_inspect_manifest(tag),
+            self._expect_build(tag, dockerfile_path),
             self._expect_push(tag),
         )
 
@@ -828,7 +960,7 @@ class TestBuildScript(unittest.TestCase):
         )
 
         dockerfile_content = "FROM scratch"
-        dockerfile_path = os.path.join(self.test_dir, "test-image.Dockerfile")
+        dockerfile_path = self.test_dir / "test-image.Dockerfile"
         with open(dockerfile_path, "w", encoding="utf-8") as f:
             f.write(dockerfile_content)
 
@@ -850,7 +982,7 @@ class TestBuildScript(unittest.TestCase):
             self._call_inspect_manifest(tag, 1),
         )
 
-        self._run_main("test-image")
+        self._run_main(["test-image"])
 
         self._verify_docker_calls(
             self._expect_docker_version(),
@@ -891,7 +1023,7 @@ class TestBuildScript(unittest.TestCase):
         self._create_deps_json({"test-image": {"deps": {}}})
 
         with self.assertRaises(SystemExit) as cm:
-            self._run_main("test-image")
+            self._run_main(["test-image"])
 
         self.assertEqual(cm.exception.code, 1)
         self._verify_log_error(
@@ -915,14 +1047,14 @@ class TestBuildScript(unittest.TestCase):
             self._call_inspect_manifest(tag, 1),
             self._call_build(
                 tag,
-                os.path.realpath(dockerfile_path),
-                os.path.dirname(os.path.realpath(dockerfile_path)),
+                dockerfile_path,
+                self.test_dir,
                 1,
             ),
         )
 
         with self.assertRaises(SystemExit) as cm:
-            self._run_main("test-image")
+            self._run_main(["test-image"])
 
         self.assertEqual(cm.exception.code, 1)
         self._verify_log_error("Error during Docker operation for %s:", tag)
@@ -937,12 +1069,12 @@ class TestBuildScript(unittest.TestCase):
         self._mock_docker_calls(
             self._call_inspect_image(tag, 1),
             self._call_inspect_manifest(tag, 1),
-            self._call_build(tag, os.path.realpath(dockerfile_path), self.test_dir, 0),
+            self._call_build(tag, dockerfile_path, self.test_dir, 0),
             self._call_push(tag, 1),  # Push fails
         )
 
         # Should not exit with 1, but log warning and continue (exit 0 implied)
-        self._run_main("test-image")
+        self._run_main(["test-image"])
 
         self._verify_log_warning(
             "Failed to push image %s. Continuing with local image.", tag
@@ -962,7 +1094,7 @@ class TestBuildScript(unittest.TestCase):
         )
 
         with self.assertRaises(SystemExit) as cm:
-            self._run_main("test-image")
+            self._run_main(["test-image"])
 
         self.assertEqual(cm.exception.code, 1)
         self._verify_log_error("Error during Docker operation for %s:", tag)
@@ -975,10 +1107,41 @@ class TestBuildScript(unittest.TestCase):
         self._create_dockerfile("B", "")
 
         with self.assertRaises(SystemExit) as cm:
-            self._run_main("A")
+            self._run_main(["A"])
 
         self.assertEqual(cm.exception.code, 1)
-        self._verify_log_error("Cycle detected in dependencies for %s: %s", "A", ANY)
+        self._verify_log_error("Cycle detected in dependencies: %s", ANY)
+
+    def test_build_multiple_targets(self) -> None:
+        """Test building multiple target images in one run."""
+        self._create_devkit_json()
+        df_a, tag_a, _ = self._create_dockerfile("A", "FROM scratch")
+        df_b, tag_b, _ = self._create_dockerfile(
+            "B", "ARG BASE\nFROM ${BASE}\n", [f"BASE={tag_a}"]
+        )
+        self._create_deps_json({"A": {"deps": {}}, "B": {"deps": {"BASE": "A"}}})
+
+        self._mock_docker_calls(
+            self._call_inspect_image(tag_a, 1),
+            self._call_inspect_manifest(tag_a, 1),
+            self._call_inspect_image(tag_b, 1),
+            self._call_inspect_manifest(tag_b, 1),
+        )
+
+        self._run_main(["A", "B"])
+
+        self._verify_docker_calls(
+            self._expect_docker_version(),
+            self._expect_buildx_version(),
+            self._expect_inspect_image(tag_a),
+            self._expect_inspect_manifest(tag_a),
+            self._expect_build(tag_a, df_a),
+            self._expect_push(tag_a),
+            self._expect_inspect_image(tag_b),
+            self._expect_inspect_manifest(tag_b),
+            self._expect_build(tag_b, df_b, build_args=["BASE", tag_a]),
+            self._expect_push(tag_b),
+        )
 
     def test_invalid_target_image(self) -> None:
         """Test invalid target image provided to main."""
@@ -986,12 +1149,118 @@ class TestBuildScript(unittest.TestCase):
         self._create_deps_json({})
 
         with self.assertRaises(SystemExit) as cm:
-            self._run_main("invalid")
+            self._run_main(["invalid"])
 
         self.assertEqual(cm.exception.code, 1)
         self._verify_log_error(
             "Specified target image '%s' is not a valid image name.", "invalid"
         )
+
+    def test_get_all_docker_image_tags(self) -> None:
+        """Test get_all_docker_image_tags directly with and without targets."""
+        self._create_devkit_json()
+        _, tag_a, _ = self._create_dockerfile("A", "FROM scratch")
+        _, tag_b, _ = self._create_dockerfile(
+            "B", "ARG BASE\nFROM ${BASE}\n", [f"BASE={tag_a}"]
+        )
+        self._create_deps_json({"A": {"deps": {}}, "B": {"deps": {"BASE": "A"}}})
+
+        # Test all tags
+        tags = self._call_get_all_docker_image_tags()
+        self.assertEqual(tags, [tag_a, tag_b])
+
+        # Test targeted tags
+        tags = self._call_get_all_docker_image_tags(target_images=["A"])
+        self.assertEqual(tags, [tag_a])
+
+    def test_get_all_docker_image_tags_shared_dependency(self) -> None:
+        """Test get_all_docker_image_tags with a shared dependency for coverage."""
+        self._create_devkit_json()
+        _, tag_a, _ = self._create_dockerfile("A", "FROM scratch")
+        _, tag_b, _ = self._create_dockerfile(
+            "B", "ARG BASE\nFROM ${BASE}\n", [f"BASE={tag_a}"]
+        )
+        _, tag_c, _ = self._create_dockerfile(
+            "C", "ARG BASE\nFROM ${BASE}\n", [f"BASE={tag_a}"]
+        )
+        self._create_deps_json(
+            {
+                "A": {"deps": {}},
+                "B": {"deps": {"BASE": "A"}},
+                "C": {"deps": {"BASE": "A"}},
+            }
+        )
+
+        # Building B and C should visit A twice in the nodes_to_visit set logic
+        tags = self._call_get_all_docker_image_tags(target_images=["B", "C"])
+        # Order of B and C might vary but A must be first
+        self.assertEqual(tags[0], tag_a)
+        self.assertIn(tag_b, tags)
+        self.assertIn(tag_c, tags)
+        self.assertEqual(len(tags), 3)
+
+    def test_get_all_docker_image_tags_no_docker_calls(self) -> None:
+        """Ensure get_all_docker_image_tags does not call any docker commands."""
+        self._create_devkit_json()
+        _, _, _ = self._create_dockerfile("A", "FROM scratch")
+        self._create_deps_json({"A": {"deps": {}}})
+
+        self.mock_run.reset_mock()
+        tags = self._call_get_all_docker_image_tags()
+
+        self.assertEqual(len(tags), 1)
+        self.mock_run.assert_not_called()
+
+    def test_get_all_docker_image_tags_empty(self) -> None:
+        """Test get_all_docker_image_tags with empty deps."""
+        self._create_devkit_json()
+        self._create_deps_json({})
+        tags = self._call_get_all_docker_image_tags()
+        self.assertEqual(tags, [])
+
+    def test_get_image_prefix_full(self) -> None:
+        """Test get_image_prefix with full registry config."""
+        config_data = {
+            "docker": {
+                "registry": {
+                    "host": "host",
+                    "project": "proj",
+                    "repository": "repo",
+                    "namespace": "ns",
+                }
+            }
+        }
+        self._create_devkit_json(config_data)
+        prefix = self._call_get_image_prefix()
+        self.assertEqual(prefix, "host/proj/repo/devkit/ns")
+
+    def test_get_image_prefix_default_ns(self) -> None:
+        """Test get_image_prefix with default namespace."""
+        config_data = {
+            "docker": {"registry": {"host": "h", "project": "p", "repository": "r"}}
+        }
+        self._create_devkit_json(config_data)
+        prefix = self._call_get_image_prefix()
+        self.assertEqual(prefix, "h/p/r/devkit")
+
+    def test_get_image_prefix_no_repo(self) -> None:
+        """Test get_image_prefix when repo is not defined."""
+        config_data = {"docker": {"registry": {"namespace": "ns"}}}
+        self._create_devkit_json(config_data)
+        prefix = self._call_get_image_prefix()
+        self.assertEqual(prefix, "devkit/ns")
+
+    def test_get_image_prefix_file_not_found(self) -> None:
+        """Test get_image_prefix when file does not exist."""
+        prefix = self._call_get_image_prefix(self.test_dir / "nonexistent.json")
+        self.assertEqual(prefix, "devkit")
+
+    def test_get_image_prefix_exception(self) -> None:
+        """Test get_image_prefix handles json decode error."""
+        with open(self.config_path, "w", encoding="utf-8") as f:
+            f.write("invalid json")
+        prefix = self._call_get_image_prefix()
+        self.assertEqual(prefix, "devkit")
 
 
 if __name__ == "__main__":  # pragma: no cover

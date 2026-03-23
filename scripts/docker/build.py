@@ -16,24 +16,19 @@
 This script manages the building of Docker images with content-addressable tagging.
 """
 
+from collections.abc import Mapping, Sequence
 import argparse
 import hashlib
 import os
 import subprocess
 import sys
-from typing import List, Dict, Optional, TypedDict, Any
+from typing import Any, Optional, TypedDict
 import json
 import graphlib
 import logging
 from pathlib import Path
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO = ""
-ARCH = "amd64"
-EXTRA_PACKAGES_MAP: Dict[str, List[str]] = {}
-EXTRA_KEYS_MAP: Dict[str, List[str]] = {}
-EXTRA_REPOSITORIES_MAP: Dict[str, List[str]] = {}
-
 
 CONFIG_SCHEMA = {
     "type": dict,
@@ -47,6 +42,7 @@ CONFIG_SCHEMA = {
                         "host": {"type": str},
                         "project": {"type": str},
                         "repository": {"type": str},
+                        "namespace": {"type": str},
                     },
                     "additional_properties": False,
                 },
@@ -80,7 +76,7 @@ CONFIG_SCHEMA = {
 }
 
 
-def validate_config(data: Any, schema: Dict[str, Any], path: str = "") -> None:
+def validate_config(data: Any, schema: Mapping[str, Any], path: str = "") -> None:
     """Validates the config against the schema."""
     expected_type = schema.get("type")
     if expected_type and not isinstance(data, expected_type):
@@ -116,6 +112,60 @@ def validate_config(data: Any, schema: Dict[str, Any], path: str = "") -> None:
                         additional_properties,
                         path=f"{path}.{key}" if path else key,
                     )
+
+
+def parse_registry_config(config: Mapping[str, Any]) -> tuple[str, str]:
+    """
+    Extracts the repository and namespace from the docker configuration.
+
+    Args:
+        config: The configuration dictionary.
+
+    Returns:
+        A tuple containing (repo, namespace).
+    """
+    repo = ""
+    namespace = "devkit"
+    if "docker" in config:
+        docker_config = config["docker"]
+        if "registry" in docker_config:
+            registry = docker_config["registry"]
+            if (
+                "host" in registry
+                and "project" in registry
+                and "repository" in registry
+            ):
+                host = registry["host"]
+                project = registry["project"]
+                repository = registry["repository"]
+                if host and project and repository:
+                    repo = f"{host}/{project}/{repository}"
+            if "namespace" in registry and registry["namespace"]:
+                namespace = f"devkit/{registry['namespace']}"
+    return repo, namespace
+
+
+def get_image_prefix(config_path: Path) -> str:
+    """
+    Returns the Docker image prefix (repo/namespace/) from the configuration file.
+
+    Args:
+        config_path: Path to the configuration file.
+
+    Returns:
+        The image prefix string.
+    """
+    if config_path.exists():
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                repo, namespace = parse_registry_config(config)
+                if repo:
+                    return f"{repo}/{namespace}"
+                return f"{namespace}"
+        except (json.JSONDecodeError, KeyError, ValueError):
+            pass
+    return "devkit"
 
 
 def check_docker_installed(log_file: Optional[Path]) -> None:
@@ -155,79 +205,20 @@ def check_docker_buildx_installed(log_file: Optional[Path]) -> None:
         sys.exit(1)
 
 
-def _load_registry_config(config: Dict[str, Any]) -> None:
-    """Loads the registry config from the docker config."""
-    global REPO
-    if "registry" in config["docker"]:
-        registry = config["docker"]["registry"]
-        if "host" in registry and "project" in registry and "repository" in registry:
-            h = registry["host"]
-            p = registry["project"]
-            r = registry["repository"]
-            if h and p and r:
-                REPO = f"{h}/{p}/{r}"
-
-
-def _load_images_config(config: Dict[str, Any]) -> None:
-    """Loads the images config from the docker config."""
-    if "images" in config["docker"]:
-        for img, settings in config["docker"]["images"].items():
-            if "packages" in settings:
-                packages = []
-                for k, v in settings["packages"].items():
-                    if not v:
-                        logging.error(
-                            "Package %s in image %s has an empty version. "
-                            "Please specify a version or use '*'.",
-                            k,
-                            img,
-                        )
-                        sys.exit(1)
-                    packages.append(f"{k}={v}")
-                EXTRA_PACKAGES_MAP[img] = packages
-            if "keys" in settings:
-                keys = []
-                for k, v in settings["keys"].items():
-                    keys.append(f"{k}={v}")
-                EXTRA_KEYS_MAP[img] = keys
-            if "repositories" in settings:
-                repos = []
-                for k, v in settings["repositories"].items():
-                    repos.append(f"{k}={v}")
-                EXTRA_REPOSITORIES_MAP[img] = repos
-
-
-def load_config(config_path: str) -> None:
-    """Loads the devkit.json config file."""
-    if not os.path.exists(config_path):
-        logging.info("devkit.json config file not found: %s", config_path)
-        return
-    with open(config_path, "r", encoding="utf-8") as f:
-        try:
-            config = json.load(f)
-            validate_config(config, CONFIG_SCHEMA)
-            if "docker" in config:
-                _load_registry_config(config)
-                _load_images_config(config)
-        except (json.JSONDecodeError, ValueError) as e:
-            logging.error("Could not load %s: %s", config_path, e)
-            sys.exit(1)
-
-
 class ImageConfig(TypedDict):
-    deps: Dict[str, str]
+    deps: dict[str, str]
     local: Optional[bool]
 
 
-ImageConfigsMap = Dict[str, ImageConfig]
+ImageConfigsMap = dict[str, ImageConfig]
 
 
-def load_image_configs(search_paths: List[str]) -> ImageConfigsMap:
+def load_image_configs(search_paths: Sequence[Path]) -> ImageConfigsMap:
     """Loads all deps.json files from the search paths."""
     all_configs: ImageConfigsMap = {}
     for path in search_paths:
-        deps_file = os.path.join(path, "deps.json")
-        if os.path.exists(deps_file):
+        deps_file = path / "deps.json"
+        if deps_file.exists():
             logging.info("Loading image configs from %s", deps_file)
             with open(deps_file, "r", encoding="utf-8") as f:
                 try:
@@ -244,7 +235,7 @@ def load_image_configs(search_paths: List[str]) -> ImageConfigsMap:
     return all_configs
 
 
-def calculate_sha256(dockerfile_path: str, sorted_build_args: List[str]) -> str:
+def calculate_sha256(dockerfile_path: str, sorted_build_args: Sequence[str]) -> str:
     """
     Calculates SHA256 hash based on Dockerfile content and sorted build arguments.
     """
@@ -259,21 +250,298 @@ def calculate_sha256(dockerfile_path: str, sorted_build_args: List[str]) -> str:
     return hasher.hexdigest()
 
 
-def get_image_tag(image_name: str, sha: str) -> str:
-    """Constructs the full image tag."""
-    image_path = f"devkit/{image_name}"
-    tag_suffix = f"{ARCH}-{sha}"
-    if REPO:
-        return f"{REPO}/{image_path}:{tag_suffix}"
-    return f"{image_path}:{tag_suffix}"
+def get_dependency_subgraph(
+    target_image_names: Sequence[str],
+    image_configs_map: Mapping[str, ImageConfig],
+) -> Sequence[str]:
+    """Finds all dependencies for target images and returns them topologically sorted."""
+    full_graph = {
+        name: set(conf["deps"].values()) for name, conf in image_configs_map.items()
+    }
+
+    nodes_to_visit = set(target_image_names)
+    visited_nodes = set()
+    while nodes_to_visit:
+        current_node = nodes_to_visit.pop()
+        if current_node not in visited_nodes:
+            visited_nodes.add(current_node)
+            if current_node in full_graph:
+                nodes_to_visit.update(full_graph[current_node])
+
+    subgraph = {node: full_graph[node] for node in visited_nodes if node in full_graph}
+
+    try:
+        ts = graphlib.TopologicalSorter(subgraph)
+        return list(ts.static_order())
+    except Exception as e:
+        logging.error("Cycle detected in dependencies: %s", e)
+        sys.exit(1)
+
+
+class DockerBuilder:
+    """Manages Docker image building and tag calculation."""
+
+    def __init__(self, config_path: Path, search_paths: Sequence[Path]):
+        self.config_path = config_path
+        self.search_paths = search_paths
+        self.repo = ""
+        self.namespace = "devkit"
+        self.arch = "amd64"
+        self.extra_packages_map: dict[str, list[str]] = {}
+        self.extra_keys_map: dict[str, list[str]] = {}
+        self.extra_repositories_map: dict[str, list[str]] = {}
+        self.image_configs_map: ImageConfigsMap = {}
+        self.generated_tags: dict[str, str] = {}
+
+        self._load_config()
+        self.image_configs_map = load_image_configs(self.search_paths)
+
+    def _load_config(self) -> None:
+        """Loads the devkit.json config file."""
+        if not self.config_path.exists():
+            logging.info("devkit.json config file not found: %s", self.config_path)
+            return
+        with open(self.config_path, "r", encoding="utf-8") as f:
+            try:
+                config = json.load(f)
+                validate_config(config, CONFIG_SCHEMA)
+                if "docker" in config:
+                    self._load_registry_config(config)
+                    self._load_images_config(config)
+            except (json.JSONDecodeError, ValueError) as e:
+                logging.error("Could not load %s: %s", self.config_path, e)
+                sys.exit(1)
+
+    def _load_registry_config(self, config: Mapping[str, Any]) -> None:
+        """Loads the registry config from the docker config."""
+        self.repo, self.namespace = parse_registry_config(config)
+
+    def _load_images_config(self, config: Mapping[str, Any]) -> None:
+        """Loads the images config from the docker config."""
+        if "images" in config["docker"]:
+            for img, settings in config["docker"]["images"].items():
+                if "packages" in settings:
+                    packages = []
+                    for k, v in settings["packages"].items():
+                        if not v:
+                            logging.error(
+                                "Package %s in image %s has an empty version. "
+                                "Please specify a version or use '*'.",
+                                k,
+                                img,
+                            )
+                            sys.exit(1)
+                        packages.append(f"{k}={v}")
+                    self.extra_packages_map[img] = packages
+                if "keys" in settings:
+                    keys = []
+                    for k, v in settings["keys"].items():
+                        keys.append(f"{k}={v}")
+                    self.extra_keys_map[img] = keys
+                if "repositories" in settings:
+                    repos = []
+                    for k, v in settings["repositories"].items():
+                        repos.append(f"{k}={v}")
+                    self.extra_repositories_map[img] = repos
+
+    def get_image_tag(self, image_name: str, sha: str) -> str:
+        """Constructs the full image tag."""
+        image_path = f"{self.namespace}/{image_name}"
+        tag_suffix = f"{self.arch}-{sha}"
+        if self.repo:
+            return f"{self.repo}/{image_path}:{tag_suffix}"
+        return f"{image_path}:{tag_suffix}"
+
+    def get_build_order(
+        self, target_images: Optional[Sequence[str]] = None
+    ) -> Sequence[str]:
+        """Determines the topologically sorted build order for all or targeted images."""
+        if target_images:
+            images_to_process = self.get_dependency_subgraph(target_images)
+            logging.info(
+                "Processing Docker images %s and their dependencies: %s...",
+                ", ".join(target_images),
+                ", ".join(images_to_process),
+            )
+            return images_to_process
+
+        full_graph = {
+            name: set(conf["deps"].values())
+            for name, conf in self.image_configs_map.items()
+        }
+        try:
+            ts = graphlib.TopologicalSorter(full_graph)
+            images_to_process = list(ts.static_order())
+            logging.info("Processing all Docker images...")
+            return images_to_process
+        except Exception as e:
+            logging.error("Cycle detected in image dependencies: %s", e)
+            sys.exit(1)
+
+    def calculate_tags(
+        self, target_images: Optional[Sequence[str]] = None
+    ) -> Sequence[str]:
+        """Calculates tags for images in topological order."""
+        images_to_process = self.get_build_order(target_images)
+
+        for image_name in images_to_process:
+            self.calculate_tag_for_image(image_name)
+
+        return [self.generated_tags[name] for name in images_to_process]
+
+    def calculate_tag_for_image(self, image_name: str) -> str:
+        """Calculates the tag for a single image, recursively handling dependencies."""
+        if image_name in self.generated_tags:
+            return self.generated_tags[image_name]
+
+        logging.info("=== Calculating tag for: %s ===", image_name)
+        image_conf = self.image_configs_map[image_name]
+        dependencies = image_conf["deps"]
+
+        dockerfile_name = f"{image_name}.Dockerfile"
+        dockerfile_path = None
+
+        for path in self.search_paths:
+            potential_path = os.path.join(path, dockerfile_name)
+            if os.path.exists(potential_path):
+                dockerfile_path = potential_path
+                break
+
+        if not dockerfile_path:
+            logging.error(
+                "Dockerfile %s not found for image '%s' in any of the search paths: %s.",
+                dockerfile_name,
+                image_name,
+                self.search_paths,
+            )
+            sys.exit(1)
+
+        dockerfile_path = os.path.realpath(dockerfile_path)
+        build_args_for_sha_calc = []
+
+        for arg_name, dep_image_name in dependencies.items():
+            dep_tag = self.calculate_tag_for_image(dep_image_name)
+            build_args_for_sha_calc.append(f"{arg_name}={dep_tag}")
+
+        for map_attr, arg_name in [
+            ("extra_packages_map", "EXTRA_PACKAGES"),
+            ("extra_keys_map", "EXTRA_KEYS"),
+            ("extra_repositories_map", "EXTRA_REPOSITORIES"),
+        ]:
+            val = getattr(self, map_attr).get(image_name, [])
+            if val:
+                val_str = " ".join(val)
+                build_args_for_sha_calc.append(f"{arg_name}={val_str}")
+
+        build_args_for_sha_calc.sort()
+        sha = calculate_sha256(dockerfile_path, build_args_for_sha_calc)
+        tag = self.get_image_tag(image_name, sha)
+        self.generated_tags[image_name] = tag
+        logging.info("Tag for %s: %s", image_name, tag)
+        return tag
+
+    def get_dependency_subgraph(
+        self, target_image_names: Sequence[str]
+    ) -> Sequence[str]:
+        """
+        Finds all dependencies for target images and returns them topologically sorted.
+        """
+        return get_dependency_subgraph(target_image_names, self.image_configs_map)
+
+    def build_images(
+        self,
+        target_images: Sequence[str],
+        print_tag_mode: bool,
+        no_cache: bool,
+        local_flag: bool,
+    ) -> None:
+        """Builds, pulls, or pushes images based on calculated tags."""
+        images_to_process = self.get_build_order(
+            target_images if target_images else None
+        )
+
+        target_image_for_tag_print = target_images[0] if print_tag_mode else None
+
+        for image_name in images_to_process:
+            tag = self.calculate_tag_for_image(image_name)
+            image_conf = self.image_configs_map[image_name]
+            local_image_mode = local_flag or image_conf.get("local", False)
+
+            # We need the dockerfile_path for building.
+            # calculate_tag_for_image already verified it exists.
+            dockerfile_name = f"{image_name}.Dockerfile"
+            dockerfile_path = None
+            for path in self.search_paths:
+                potential_path = os.path.join(path, dockerfile_name)
+                if os.path.exists(potential_path):
+                    dockerfile_path = potential_path
+                    break
+
+            if not dockerfile_path:  # pragma: no cover
+                logging.error("Dockerfile %s not found.", dockerfile_name)
+                sys.exit(1)
+
+            dockerfile_path = os.path.realpath(dockerfile_path)
+            context_path = os.path.dirname(dockerfile_path)
+
+            build_args_for_manage = []
+            dependencies = image_conf["deps"]
+            for arg_name, dep_image_name in dependencies.items():
+                build_args_for_manage.extend(
+                    [arg_name, self.generated_tags[dep_image_name]]
+                )
+
+            for map_attr, arg_name in [
+                ("extra_packages_map", "EXTRA_PACKAGES"),
+                ("extra_keys_map", "EXTRA_KEYS"),
+                ("extra_repositories_map", "EXTRA_REPOSITORIES"),
+            ]:
+                val = getattr(self, map_attr).get(image_name, [])
+                if val:
+                    build_args_for_manage.extend([arg_name, " ".join(val)])
+
+            manage_docker_image(
+                tag,
+                dockerfile_path,
+                build_args_for_manage,
+                context_path,
+                local_image_mode,
+                no_cache,
+                self.repo,
+            )
+
+            if print_tag_mode and image_name == target_image_for_tag_print:
+                print(tag)
+                sys.exit(0)
+
+        if not print_tag_mode:
+            if target_images:
+                logging.info(
+                    "Targeted Docker images %s and dependencies processed successfully.",
+                    ", ".join(target_images),
+                )
+            else:
+                logging.info("All Docker images processed successfully.")
+
+
+def get_all_docker_image_tags(
+    config_path: Path,
+    search_paths: Sequence[Path],
+    target_images: Optional[Sequence[str]] = None,
+) -> Sequence[str]:
+    """Returns full docker image tags list for all or targeted images."""
+    builder = DockerBuilder(config_path, search_paths)
+    return builder.calculate_tags(target_images)
 
 
 def manage_docker_image(
     tag: str,
     dockerfile_path: str,
-    build_args_list: List[str],
+    build_args_list: Sequence[str],
     context_path: str,
     local_image_mode: Optional[bool],
+    no_cache: bool = False,
+    repo: str = "",
 ) -> None:
     """
     If repo is not defined or local_image_mode is true:
@@ -289,19 +557,21 @@ def manage_docker_image(
         context_path: The Docker build context path.
         local_image_mode: The flag that controls whether the image should be local-only,
           i.e. if true, the image won't be pulled from and pushed to remote registry.
+        no_cache: If true, the image will be rebuilt even if it already exists locally.
+        repo: The Docker registry path.
     """
     try:
-        if check_if_image_exists_locally(tag):
+        if not no_cache and check_if_image_exists_locally(tag):
             return
-        if not REPO or local_image_mode:
-            if not REPO:
+        if not repo or local_image_mode:
+            if not repo:
                 logging.warning("Docker registry is not defined.")
-            build_image(tag, dockerfile_path, build_args_list, context_path)
+            build_image(tag, dockerfile_path, build_args_list, context_path, no_cache)
             return
-        if check_if_image_exists_in_remote_registry(tag):
+        if not no_cache and check_if_image_exists_in_remote_registry(tag):
             pull_image_from_registry(tag)
             return
-        build_image(tag, dockerfile_path, build_args_list, context_path)
+        build_image(tag, dockerfile_path, build_args_list, context_path, no_cache)
         push_image_to_registry(tag)
 
     except subprocess.CalledProcessError as e:
@@ -345,7 +615,11 @@ def check_if_image_exists_locally(tag: str) -> bool:
 
 
 def build_image(
-    tag: str, dockerfile_path: str, build_args_list: List[str], context_path: str
+    tag: str,
+    dockerfile_path: str,
+    build_args_list: Sequence[str],
+    context_path: str,
+    no_cache: bool = False,
 ) -> None:
     """
     Builds docker image.
@@ -356,6 +630,7 @@ def build_image(
         build_args_list: A list of build arguments,
           e.g., ["ARG_NAME1", "VALUE1", "ARG_NAME2", "VALUE2"].
         context_path: The Docker build context path.
+        no_cache: If true, builds with --no-cache.
 
     Returns:
         None
@@ -371,6 +646,9 @@ def build_image(
         "--file",
         dockerfile_path,
     ]
+
+    if no_cache:
+        docker_build_cmd.append("--no-cache")
 
     idx = 0
     while idx < len(build_args_list):
@@ -466,218 +744,48 @@ def push_image_to_registry(tag: str) -> None:
             logging.warning("Details: %s", push_result.stderr.strip())
 
 
-def process_image(
-    image_name: str,
-    dependencies: Dict[str, str],
-    generated_tags: Dict[str, str],
-    print_tag_mode: bool,
-    target_image_for_tag_print: Optional[str],
-    search_paths: List[str],
-    local_image_mode: Optional[bool],
-) -> Optional[str]:
-    """
-    Processes a single image: calculates its tag, builds/pulls/pushes it,
-    and optionally prints the tag.
-    """
-    logging.info("=== Processing: %s ===", image_name)
-    dockerfile_name = f"{image_name}.Dockerfile"
-    dockerfile_path = None
-
-    for path in search_paths:
-        potential_path = os.path.join(path, dockerfile_name)
-        if os.path.exists(potential_path):
-            dockerfile_path = potential_path
-            break
-
-    if not dockerfile_path:
-        logging.error(
-            "Dockerfile %s not found for image '%s' in any of the search paths: %s.",
-            dockerfile_name,
-            image_name,
-            search_paths,
-        )
-        sys.exit(1)
-
-    dockerfile_path = os.path.realpath(dockerfile_path)
-
-    build_args_for_manage = []  # For calling manage_image: [ARG_NAME, ARG_VALUE, ...]
-    build_args_for_sha_calc = []  # For SHA calculation: ["ARG_NAME=VALUE", ...]
-
-    for arg_name, dep_image_name in dependencies.items():
-        if dep_image_name not in generated_tags:  # pragma: no cover
-            logging.error(
-                "Dependency tag for '%s' (needed by '%s' as build arg '%s') not found.",
-                dep_image_name,
-                image_name,
-                arg_name,
-            )
-            logging.error(
-                "Ensure images are in the correct build order and all "
-                "dependencies are defined correctly."
-            )
-            sys.exit(1)
-
-        dep_tag = generated_tags[dep_image_name]
-        build_args_for_manage.extend([arg_name, dep_tag])
-        build_args_for_sha_calc.append(f"{arg_name}={dep_tag}")
-        logging.info(
-            "Build arg for %s: %s=%s (Tag: %s)",
-            image_name,
-            arg_name,
-            dep_image_name,
-            dep_tag,
-        )
-
-    extra_pkgs = EXTRA_PACKAGES_MAP.get(image_name, [])
-    if extra_pkgs:
-        extra_pkgs_str = " ".join(extra_pkgs)
-        build_args_for_manage.extend(["EXTRA_PACKAGES", extra_pkgs_str])
-        build_args_for_sha_calc.append(f"EXTRA_PACKAGES={extra_pkgs_str}")
-        logging.info(
-            "Build arg for %s: EXTRA_PACKAGES=%s",
-            image_name,
-            extra_pkgs_str,
-        )
-
-    extra_keys = EXTRA_KEYS_MAP.get(image_name, [])
-    if extra_keys:
-        extra_keys_str = " ".join(extra_keys)
-        build_args_for_manage.extend(["EXTRA_KEYS", extra_keys_str])
-        build_args_for_sha_calc.append(f"EXTRA_KEYS={extra_keys_str}")
-        logging.info(
-            "Build arg for %s: EXTRA_KEYS=%s",
-            image_name,
-            extra_keys_str,
-        )
-
-    extra_repos = EXTRA_REPOSITORIES_MAP.get(image_name, [])
-    if extra_repos:
-        extra_repos_str = " ".join(extra_repos)
-        build_args_for_manage.extend(["EXTRA_REPOSITORIES", extra_repos_str])
-        build_args_for_sha_calc.append(f"EXTRA_REPOSITORIES={extra_repos_str}")
-        logging.info(
-            "Build arg for %s: EXTRA_REPOSITORIES=%s",
-            image_name,
-            extra_repos_str,
-        )
-
-    build_args_for_sha_calc.sort()
-
-    try:
-        current_sha = calculate_sha256(dockerfile_path, build_args_for_sha_calc)
-    # Should be caught by os.path.exists, but defensive.
-    except FileNotFoundError:  # pragma: no cover
-        logging.error(
-            "Dockerfile %s disappeared before SHA calculation for image %s.",
-            dockerfile_path,
-            image_name,
-        )
-        sys.exit(1)
-
-    sha_info_str = (
-        f"SHA for {dockerfile_path} (Content + Sorted Build Args "
-        f"[{', '.join(build_args_for_sha_calc)}]): {current_sha}"
-    )
-    logging.info(sha_info_str)
-
-    current_tag = get_image_tag(image_name, current_sha)
-    logging.info("Tag for %s: %s", image_name, current_tag)
-    generated_tags[image_name] = current_tag
-
-    context_path = os.path.dirname(dockerfile_path)
-    manage_docker_image(
-        current_tag,
-        dockerfile_path,
-        build_args_for_manage,
-        context_path,
-        local_image_mode,
-    )
-
-    if print_tag_mode:
-        if image_name == target_image_for_tag_print:
-            print(current_tag)
-            sys.exit(0)
-    else:
-        # manage_docker_image handles its own print and sys.exit calls on error.
-        # If it returns, it was successful.
-        logging.info(
-            "=== Finished processing: %s ===",
-            image_name,
-        )
-
-    return current_tag
-
-
-def get_dependency_subgraph(
-    target_image_name: str,
-    image_configs_map: Dict[str, ImageConfig],
-) -> List[str]:
-    """
-    Performs a DFS traversal to find all dependencies for a target image,
-    then returns a topologically sorted list of these dependencies.
-    """
-    if target_image_name not in image_configs_map:
-        return []  # pragma: no cover
-
-    # Build the full dependency graph for graphlib
-    full_graph = {
-        name: set(conf["deps"].values()) for name, conf in image_configs_map.items()
-    }
-
-    # Find all nodes reachable from the target_image_name (i.e., its dependencies)
-    nodes_to_visit = {target_image_name}
-    visited_nodes = set()
-    while nodes_to_visit:
-        current_node = nodes_to_visit.pop()
-        if current_node not in visited_nodes:
-            visited_nodes.add(current_node)
-            # Add dependencies of the current node to the visit list
-            # This assumes deps are keys in the full_graph
-            if current_node in full_graph:
-                nodes_to_visit.update(full_graph[current_node])
-
-    # Create a subgraph containing only the target and its dependencies
-    subgraph = {node: full_graph[node] for node in visited_nodes if node in full_graph}
-
-    # Topologically sort the subgraph to get the correct build order
-    try:
-        ts = graphlib.TopologicalSorter(subgraph)
-        return list(ts.static_order())
-    except graphlib.CycleError as e:
-        # This should ideally not happen if the full graph is acyclic,
-        # but it's good practice to handle it.
-        logging.error("Cycle detected in dependencies for %s: %s", target_image_name, e)
-        sys.exit(1)
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Build Docker images with content-addressable tagging.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "target_image",
-        nargs="?",
-        default=None,
-        help="Optional: Build only the specified target image and its "
+        "target_images",
+        nargs="*",
+        default=[],
+        help="Optional: Build only the specified target images and their "
         "dependencies. If not specified, all images are built.",
     )
     parser.add_argument(
         "--print-tag",
         action="store_true",
         help="If specified, print the generated tag for the target_image and "
-        "exit. Requires target_image to be specified.",
+        "exit. Requires exactly one target_image to be specified.",
     )
     parser.add_argument(
         "--config",
         required=True,
         help="Path to the config file.",
+        type=Path,
     )
     parser.add_argument(
         "--search-path",
         action="append",
         required=True,
         help="Search path for Dockerfiles.",
+        type=Path,
+    )
+    parser.add_argument(
+        "--local",
+        action="store_true",
+        help="If specified, build and manage Docker images locally only, "
+        "without pulling from or pushing to the remote registry.",
+    )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="If specified, the image will be rebuilt, "
+        "even if it is already built by docker.",
     )
     parser.add_argument(
         "--log-file",
@@ -697,90 +805,34 @@ def main() -> None:
     check_docker_installed(args.log_file)
     check_docker_buildx_installed(args.log_file)
 
-    load_config(args.config)
+    builder = DockerBuilder(args.config, args.search_path)
 
-    image_configs_map = load_image_configs(args.search_path)
+    all_image_names = list(builder.image_configs_map.keys())
 
-    print_tag_mode = args.print_tag
-    target_image = args.target_image
-    target_image_for_tag_print = None
-
-    all_image_names = list(image_configs_map.keys())
-
-    if print_tag_mode:
-        if not target_image:
-            logging.error("--print-tag requires a target_image to be specified.")
+    if args.print_tag:
+        if len(args.target_images) != 1:
+            logging.error(
+                "--print-tag requires exactly one target_image to be specified."
+            )
             sys.exit(1)
-        target_image_for_tag_print = target_image
+        target_image_for_tag_print = args.target_images[0]
         if target_image_for_tag_print not in all_image_names:
             logging.error(
                 "Target image '%s' for --print-tag is not a valid image name.",
                 target_image_for_tag_print,
             )
             sys.exit(1)
-    elif target_image and target_image not in all_image_names:
-        logging.error(
-            "Specified target image '%s' is not a valid image name.",
-            target_image,
-        )
-        logging.error("Choose from: %s", ", ".join(all_image_names))
-        sys.exit(1)
-
-    images_to_process = []
-    if target_image:
-        images_to_process = get_dependency_subgraph(target_image, image_configs_map)
-        logging.info(
-            "Processing Docker image '%s' and its dependencies: %s...",
-            target_image,
-            ", ".join(images_to_process),
-        )
     else:
-        # If no target image, build all images in a valid topological order
-        full_graph = {
-            name: set(conf["deps"].values()) for name, conf in image_configs_map.items()
-        }
-        try:
-            ts = graphlib.TopologicalSorter(full_graph)
-            images_to_process = list(ts.static_order())
-            logging.info("Processing all Docker images...")
-        except graphlib.CycleError as e:
-            logging.error("Cycle detected in image dependencies: %s", e)
-            sys.exit(1)
+        for ti in args.target_images:
+            if ti not in all_image_names:
+                logging.error(
+                    "Specified target image '%s' is not a valid image name.",
+                    ti,
+                )
+                logging.error("Choose from: %s", ", ".join(all_image_names))
+                sys.exit(1)
 
-    generated_tags: Dict[str, str] = {}
-
-    for image_name in images_to_process:
-        image_conf = image_configs_map[image_name]
-        dependencies = image_conf["deps"]
-        local_image_mode = image_conf["local"] if "local" in image_conf else None
-
-        process_image(
-            image_name,
-            dependencies,
-            generated_tags,
-            print_tag_mode,
-            target_image_for_tag_print,
-            args.search_path,
-            local_image_mode,
-        )
-
-    if print_tag_mode:  # pragma: no cover
-        # Fallback: If loop finishes in print_tag_mode, target wasn't found or
-        # logic error. This path should ideally not be reached if validations
-        # are correct.
-        logging.error(
-            "Target image '%s' for --print-tag was not processed as expected.",
-            target_image_for_tag_print,
-        )
-        sys.exit(1)
-    else:
-        if target_image:
-            logging.info(
-                "Targeted Docker image '%s' and its dependencies processed successfully.",
-                target_image,
-            )
-        else:
-            logging.info("All Docker images processed successfully.")
+    builder.build_images(args.target_images, args.print_tag, args.no_cache, args.local)
 
 
 if __name__ == "__main__":  # pragma: no cover

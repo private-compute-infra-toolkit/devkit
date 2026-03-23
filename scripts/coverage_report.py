@@ -13,6 +13,7 @@
 # limitations under the License.
 """This file provides required logic to generate unit test coverage report"""
 
+from collections.abc import Mapping, Sequence
 import argparse
 import pathlib
 import subprocess
@@ -118,7 +119,7 @@ def fit_to_column(filepath: str, max_width: int = 50) -> str:
 
 
 def print_and_validate_report(
-    coverage_data: dict[str, FileCoverage],
+    coverage_data: Mapping[str, FileCoverage],
     lines_threshold: float,
     branch_threshold: float,
 ) -> bool:
@@ -171,7 +172,7 @@ def print_and_validate_report(
     return is_coverage_valid
 
 
-def group_consecutive_numbers(numbers: list[int]) -> str:
+def group_consecutive_numbers(numbers: Sequence[int]) -> str:
     """Groups lines numbers in a list.
 
     Example:
