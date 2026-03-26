@@ -33,6 +33,7 @@ from collections.abc import MutableSequence, Sequence
 from find_project_root import find_project_root
 from list_external_mounts import get_minimal_mounts
 from docker_cleanup import start_background_cleanup
+from container_event_handler import start_container_event_handler
 
 
 def path_from_env(env_var: str, default: Path) -> Path:
@@ -236,6 +237,10 @@ def main() -> None:
 
     additional_path_val = ":".join(str(p) for p in additional_paths)
 
+    event_handler_thread, event_handler_cancel, event_handler_port = (
+        start_container_event_handler()
+    )
+
     docker_cmd = [
         "docker",
         "run",
@@ -243,6 +248,7 @@ def main() -> None:
         f"--volume={host_project_root}:{container_project_root}",
         f"--workdir={Path.cwd()}",
         f"--env=HOME={container_home}",
+        f"--env=DEVKIT_SOCKET_PORT={event_handler_port}",
         "--env=GOOGLE_CLOUD_PROJECT",
         "--env=GEMINI_API_KEY",
         "--env=AWS_SECRET_ACCESS_KEY",
@@ -279,7 +285,7 @@ def main() -> None:
 
     logging.info("%s", shlex.join(docker_cmd))
 
-    thread, cancel_event = start_background_cleanup(
+    cleanup_thread, cleanup_cancel = start_background_cleanup(
         devkit_json_path, [scripts_dir.parent / "images"]
     )
 
@@ -290,8 +296,10 @@ def main() -> None:
         exit_code_sigint = 128 + signal.SIGINT
         return_code = exit_code_sigint
     finally:
-        cancel_event.set()
-        thread.join(timeout=1.0)
+        cleanup_cancel.set()
+        event_handler_cancel.set()
+        cleanup_thread.join(timeout=1.0)
+        event_handler_thread.join(timeout=1.0)
 
     sys.exit(return_code)
 

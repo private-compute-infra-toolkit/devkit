@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 2.15.0 (2026-03-26)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.35.0
+* **deps:** Upgrade gemini-cli to 0.35.1
+
+
+### Features
+
+* implement container event handler background service
+
 ## 2.14.0 (2026-03-23)
 
 

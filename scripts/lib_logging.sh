@@ -13,6 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Set start time if not already set by a previous source of this script
+if [[ -z "${DEVKIT_START_TIME_MS:-}" ]]; then
+  DEVKIT_START_TIME_MS="$(date +%s%3N)"
+  export DEVKIT_START_TIME_MS
+fi
+
 # This script is meant to be sourced by other scripts to enable xtrace logging.
 #
 # Usage:

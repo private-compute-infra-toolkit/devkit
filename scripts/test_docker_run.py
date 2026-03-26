@@ -83,6 +83,10 @@ class TestDockerRun(unittest.TestCase):
             "scripts.docker_run.start_background_cleanup",
             return_value=(MagicMock(), MagicMock()),
         )
+        self.mock_start_container_event_handler = start_patch(
+            "scripts.docker_run.start_container_event_handler",
+            return_value=(MagicMock(), MagicMock(), 12345),
+        )
         self.mock_find_project_root = start_patch(
             "scripts.docker_run.find_project_root", return_value=Path("/project")
         )
@@ -133,6 +137,7 @@ class TestDockerRun(unittest.TestCase):
         self.assertIn("--volume=/project:/project", docker_call_args)
         self.assertIn("--workdir=/project", docker_call_args)
         self.assertIn("--env=HOME=/home/testuser", docker_call_args)
+        self.assertIn("--env=DEVKIT_SOCKET_PORT=12345", docker_call_args)
         self.assertIn("--env=GOOGLE_CLOUD_PROJECT", docker_call_args)
         self.assertIn("--env=GEMINI_API_KEY", docker_call_args)
         self.assertIn("--env=AWS_SECRET_ACCESS_KEY", docker_call_args)
@@ -333,6 +338,12 @@ class TestDockerRun(unittest.TestCase):
         mock_thread, mock_cancel_event = self.mock_start_background_cleanup.return_value
         mock_cancel_event.set.assert_called_once()
         mock_thread.join.assert_called_once()
+
+        mock_event_thread, mock_event_cancel, _ = (
+            self.mock_start_container_event_handler.return_value
+        )
+        mock_event_cancel.set.assert_called_once()
+        mock_event_thread.join.assert_called_once()
 
 
 if __name__ == "__main__":  # pragma: no cover

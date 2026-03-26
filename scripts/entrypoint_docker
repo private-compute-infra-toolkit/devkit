@@ -103,5 +103,8 @@ if [[ -n ${ADDITIONAL_PATH:-} ]]; then
   PATH="${ADDITIONAL_PATH}:${PATH}"
 fi
 
+# Report entrypoint end timestamp to the host
+echo "entrypoint_end_time_ms:$(date +%s%3N)" > "/dev/tcp/127.0.0.1/${DEVKIT_SOCKET_PORT}"
+
 exec sudo --preserve-env --preserve-env=HOME -u "${USER}" -g "${GROUP}" \
   env PATH="${PATH}" "$@"
