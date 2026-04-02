@@ -18,18 +18,15 @@ ARG DOCKER_DIGEST=sha256:ff052514f359111edd920b54581e7aca65629458607f9fbdbf82d7e
 # docker/buildx-bin:v0.25 last pushed on Jun 12, 2025 at 1:00 am
 ARG DOCKER_BUILDX_DIGEST=sha256:ca0b674e823a702b3af483197ed61b8028ef17bd1b59ecb9471945ca69efb993
 
-ARG GOLANG_IMAGE=golang:1.24.5-bookworm
 ARG DEBIAN_IMAGE=debian:bookworm-slim
 
 FROM docker@${DOCKER_DIGEST} AS docker-image
 
 FROM docker/buildx-bin@${DOCKER_BUILDX_DIGEST} AS docker-buildx-image
 
-FROM ${GOLANG_IMAGE} AS golang-image
-
 FROM ${DEBIAN_IMAGE}
 
-ARG BAZELISK_VERSION=v1.27.0
+ARG BAZELISK_VERSION=v1.28.1
 ARG LIBXML2_VERSION=2.*
 ARG CURL_VERSION=*
 ARG GNUPG_VERSION=*
@@ -39,8 +36,6 @@ ENV PATH="/usr/local/bin:${PATH}"
 
 COPY --from=docker-buildx-image /buildx /usr/libexec/docker/cli-plugins/docker-buildx
 
-COPY --from=golang-image /usr/local/go/ /usr/local/go/
-ENV PATH="/usr/local/go/bin:${PATH}"
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -53,9 +48,9 @@ RUN apt-get update \
  sudo \
  && rm -rf /var/lib/apt/lists/*
 
-ARG GOBIN=/usr/local/bin
-RUN GOBIN="${GOBIN}" go install github.com/bazelbuild/bazelisk@${BAZELISK_VERSION} \
- && ln -sf "${GOBIN}"/bazelisk "${GOBIN}"/bazel
+ADD https://github.com/bazelbuild/bazelisk/releases/download/${BAZELISK_VERSION}/bazelisk-linux-amd64 /usr/local/bin/bazelisk
+RUN chmod +x /usr/local/bin/bazelisk \
+ && ln -sf /usr/local/bin/bazelisk /usr/local/bin/bazel
 
 ARG EXTRA_KEYS=""
 RUN for key_entry in ${EXTRA_KEYS}; do \

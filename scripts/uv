@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -euo pipefail
+
+DEVKIT_DIR="${HOME}/.devkit"
+DEVKIT_BIN="${DEVKIT_DIR}/bin"
+UV_BIN="${DEVKIT_BIN}/uv"
+
+function install_uv() {
+  if ! command -v curl >/dev/null; then
+    printf "curl command does not exist\n"
+    return 1
+  fi
+  curl -LsSf https://astral.sh/uv/install.sh \
+    | /usr/bin/env UV_INSTALL_DIR="${DEVKIT_BIN}" UV_UNMANAGED_INSTALL=1 sh
+}
+
+# Download uv if it doesn't exist
+if ! command -v "${UV_BIN}" >/dev/null; then
+  mkdir -p "${DEVKIT_BIN}"
+  if ! uv_output="$(install_uv 2>&1)"; then
+    printf "Failed to install uv\n%s\n" "${uv_output}" >&2
+    exit 1
+  fi
+fi
+
+if [[ $# -eq 0 ]]; then
+  echo "Usage: $0 [python_args...]"
+  echo "Example: $0 -c 'print(\"Hello world\")'"
+  exit 1
+fi
+
+exec "${UV_BIN}" run --quiet \
+  --default-index https://pypi.org/simple \
+  --with "jinja2==3.1.6" \
+  --python "3.12" \
+  python "$@"

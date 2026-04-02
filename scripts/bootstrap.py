@@ -17,6 +17,7 @@ This script instantiates project templates.
 """
 
 import argparse
+import logging
 from collections.abc import Mapping
 import os
 from pathlib import Path
@@ -39,11 +40,11 @@ def copy_and_template(
         bool: True if any error occurred, False otherwise.
     """
     error_occurred = False
-    for src_path, _, src_files in src_dir.walk(follow_symlinks=True):
-        for src_file in src_files:
-            if src_file.endswith(".include"):
+    for dirpath, _, filenames in os.walk(str(src_dir), followlinks=True):
+        for filename in filenames:
+            if filename.endswith(".include"):
                 continue
-            src_file_path = src_path / src_file
+            src_file_path = Path(dirpath) / filename
             relative_path = src_file_path.relative_to(src_dir)
             dest_file_path = dest_dir / relative_path
             dest_file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -84,35 +85,49 @@ def main() -> None:
         formatter_class=argparse.RawTextHelpFormatter,
         add_help=False,
     )
-    parser.add_argument(
+    options_group = parser.add_argument_group("options")
+
+    options_group.add_argument(
         "-h",
         "--help",
         action="help",
         default=argparse.SUPPRESS,
         help="Show this help message and exit.",
     )
-    parser.add_argument(
+    options_group.add_argument(
         "--template",
         required=True,
         help="The name of the template to use.",
     )
-    parser.add_argument(
+    options_group.add_argument(
         "--templates-root", help="The root directory for templates lookup.", type=Path
     )
-    parser.add_argument(
+    options_group.add_argument(
         "--output-dir",
         help="The directory where the project will be bootstrapped. "
         "Defaults to current directory.",
         type=Path,
         default=Path(os.getcwd()),
     )
-    parser.add_argument(
+    options_group.add_argument(
         "--args",
         nargs="*",
         help="A list of key=value pairs for templating.",
         default=[],
     )
+    options_group.add_argument(
+        "--devkit-log-file",
+        help="Path to a file for logging. If not specified, logs to stderr.",
+        type=Path,
+    )
     args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(asctime)s][%(levelname)s]: %(message)s",
+        filename=args.devkit_log_file,
+        filemode="a" if args.devkit_log_file else "w",
+    )
 
     template = args.template
     context = {}
@@ -127,7 +142,7 @@ def main() -> None:
     if args.templates_root:
         templates_root_dir = args.templates_root
     else:
-        script_dir = Path(__file__).parent
+        script_dir = Path(__file__).resolve().parent
         templates_root_dir = script_dir.parent / "templates"
     template_dir = (templates_root_dir / template).resolve()
 

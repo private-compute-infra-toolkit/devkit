@@ -24,10 +24,10 @@ readonly IMAGES="${DEVKIT}/../images"
 
 source "${SCRIPTS}/lib_logging.sh"
 
-PROJECT_ROOT="$("${SCRIPTS}/find_project_root.py")"
+PROJECT_ROOT="$("${SCRIPTS}/uv" "${SCRIPTS}/find_project_root.py")"
 readonly PROJECT_ROOT
 
-GOLAND_IDE_IMAGE="$("${SCRIPTS}/docker/build.py" goland-ide --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}" --config "${PROJECT_ROOT}/devkit.json")" || {
+GOLAND_IDE_IMAGE="$("${SCRIPTS}/uv" "${SCRIPTS}/docker/build.py" goland-ide --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}" --config "${PROJECT_ROOT}/devkit.json")" || {
   echo "Build failed. See logs for details: ${DEVKIT_LOG_FILE}" >&2
   exit 1
 }

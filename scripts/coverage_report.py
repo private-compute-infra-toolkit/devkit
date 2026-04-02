@@ -15,9 +15,13 @@
 
 from collections.abc import Mapping, Sequence
 import argparse
+import logging
 import pathlib
 import subprocess
 import sys
+
+
+from find_project_root import find_project_root
 
 
 class FileCoverage:
@@ -302,7 +306,9 @@ def run_bazel_coverage(target: str) -> pathlib.Path:
         The anticipated `pathlib.Path` to the generated coverage report file
         on successful execution.
     """
-    command = ["bazel", "coverage", "--combined_report=lcov", target]
+    project_root = find_project_root()
+    devkit_build = str(project_root / "devkit" / "build")
+    command = [devkit_build, "bazel", "coverage", "--combined_report=lcov", target]
     try:
         subprocess.run(
             command,
@@ -311,7 +317,12 @@ def run_bazel_coverage(target: str) -> pathlib.Path:
             capture_output=False,
             encoding="utf-8",
         )
-        return pathlib.Path("bazel-out", "_coverage", "_coverage_report.dat")
+        return (
+            pathlib.Path(project_root)
+            / "bazel-out"
+            / "_coverage"
+            / "_coverage_report.dat"
+        )
     except subprocess.CalledProcessError as e:
         print(
             f"Error: Bazel coverage failed with exit code {e.returncode}.",
@@ -366,18 +377,30 @@ def main() -> None:
         ),
         default=100.0,
     )
+    parser.add_argument(
+        "--devkit-log-file",
+        help="Path to a file for logging. If not specified, logs to stderr.",
+        type=pathlib.Path,
+    )
 
     args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(asctime)s][%(levelname)s]: %(message)s",
+        filename=args.devkit_log_file,
+        filemode="a" if args.devkit_log_file else "w",
+    )
 
     for name, value in (("Branch", args.branch), ("Lines", args.lines)):
         if not 0.0 <= float(value) <= 100.0:
             print(f"Error: {name} threshold value must be in range [0.0, 100.0]")
             sys.exit(1)
 
-    print("Running Bazel Coverage")
+    logging.info("Running Bazel Coverage")
     report_path = run_bazel_coverage(args.target)
 
-    print("Generating coverage report")
+    logging.info("Generating coverage report")
     coverage_passed = generate_lcov_report(
         report_path, float(args.lines) / 100, float(args.branch) / 100
     )

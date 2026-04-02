@@ -24,7 +24,7 @@ readonly IMAGES="${DEVKIT}/../images"
 
 source "${SCRIPTS}/lib_logging.sh"
 
-PROJECT_ROOT="$("${SCRIPTS}/find_project_root.py")"
+PROJECT_ROOT="$("${SCRIPTS}/uv" "${SCRIPTS}/find_project_root.py")"
 readonly PROJECT_ROOT
 
 function usage() {
@@ -65,7 +65,7 @@ done
 
 readonly SERVER
 
-VSCODE_IDE_IMAGE="$("${SCRIPTS}/docker/build.py" vscode-ide --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}" --config "${PROJECT_ROOT}/devkit.json")" || {
+VSCODE_IDE_IMAGE="$("${SCRIPTS}/uv" "${SCRIPTS}/docker/build.py" vscode-ide --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}" --config "${PROJECT_ROOT}/devkit.json")" || {
   echo "Build failed. See logs for details: ${DEVKIT_LOG_FILE}" >&2
   exit 1
 }

@@ -135,6 +135,10 @@ class TestDockerRun(unittest.TestCase):
         self.assertIn("--rm", docker_call_args)
         # ... other assertions on docker_call_args ...
         self.assertIn("--volume=/project:/project", docker_call_args)
+        self.assertIn(
+            "--volume=/home/testuser/.devkit/logs:/home/testuser/.devkit/logs",
+            docker_call_args,
+        )
         self.assertIn("--workdir=/project", docker_call_args)
         self.assertIn("--env=HOME=/home/testuser", docker_call_args)
         self.assertIn("--env=DEVKIT_SOCKET_PORT=12345", docker_call_args)

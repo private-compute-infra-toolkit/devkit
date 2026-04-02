@@ -113,7 +113,7 @@ def main() -> None:
         Path(".config/gcloud"),
         Path(".config/google-chrome"),
         Path(".config/matplotlib"),
-        Path(".devkit"),
+        Path(".devkit/logs"),
         Path(".docker"),
         Path(".gemini"),
         Path(".local/pre-commit"),

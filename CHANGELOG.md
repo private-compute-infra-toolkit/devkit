@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 3.0.0 (2026-04-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* The Go toolchain is no longer available in the
+build-environment images. Any scripts or builds relying on go
+inside the container will fail unless they install it separately
+through the devkit.json image configuration optios.
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.35.2
+
+
+### Features
+
+* use uv for python dependencies
+* mount only ~/.devkit/logs in the container
+* refactor devkit/coverage to run on host via uv
+* run devkit tools on host
+* run devkit/bep Python code from outside of docker containers
+* separate python progress logs from standard output
+* simplify bazelisk installation and remove go from build-env
+
 ## 2.15.0 (2026-03-26)
 
 

@@ -1,5 +1,5 @@
 usage: bep [-h] [--targets TARGETS [TARGETS ...]] [--command {fetch,build}]
-           [--output_dir OUTPUT_DIR]
+           [--output_dir OUTPUT_DIR] [--devkit-log-file DEVKIT_LOG_FILE]
 
 Generates Bazel Build Event Protocol (BEP) JSON files for a list of targets.
 
@@ -11,3 +11,6 @@ options:
                         The Bazel command to run ('fetch' or 'build').
   --output_dir OUTPUT_DIR
                         Output directory for BEP logs.
+  --devkit-log-file DEVKIT_LOG_FILE
+                        Path to a file for logging. If not specified, logs to
+                        stderr.

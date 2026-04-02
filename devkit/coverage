@@ -20,17 +20,6 @@ DEVKIT="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
 readonly DEVKIT
 
 readonly SCRIPTS="${DEVKIT}/../scripts"
-readonly IMAGES="${DEVKIT}/../images"
-
 source "${SCRIPTS}/lib_logging.sh"
 
-PROJECT_ROOT="$("${SCRIPTS}/find_project_root.py")"
-readonly PROJECT_ROOT
-
-DEV_ENV_IMAGE="$("${SCRIPTS}/docker/build.py" dev-env --print-tag --search-path "${IMAGES}" --log-file "${DEVKIT_LOG_FILE}" --config "${PROJECT_ROOT}/devkit.json")" || {
-  echo "Build failed. See logs for details: ${DEVKIT_LOG_FILE}" >&2
-  exit 1
-}
-readonly DEV_ENV_IMAGE
-
-"${SCRIPTS}/docker_run.py" --devkit-log-file "${DEVKIT_LOG_FILE}" "${DEV_ENV_IMAGE}" python3 "${SCRIPTS}/coverage_report.py" "$@"
+"${SCRIPTS}/uv" "${SCRIPTS}/coverage_report.py" --devkit-log-file "${DEVKIT_LOG_FILE}" "$@"

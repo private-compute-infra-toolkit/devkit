@@ -155,15 +155,20 @@ class TestBepGeneration(unittest.TestCase):
         self.assertIn("STDERR:\nCritical error message on stderr.", stderr_output)
 
     # Tests for the generate_build_event_json function
+    @patch("bep.find_project_root")
     @patch("bep.tempfile.TemporaryDirectory")
     @patch("bep.run_command")
     def test_generate_build_event_json_for_fetch(
-        self, mock_run_command: MagicMock, mock_tempdir: MagicMock
+        self,
+        mock_run_command: MagicMock,
+        mock_tempdir: MagicMock,
+        mock_find_root: MagicMock,
     ) -> None:
         """
         Tests that `generate_build_event_json` builds the correct
         command for `bazel fetch`.
         """
+        mock_find_root.return_value = Path("/workspace")
         mock_tempdir.return_value.__enter__.side_effect = [
             "/tmp/bazel_cache",
             "/tmp/bazel_registry_cache",
@@ -175,6 +180,7 @@ class TestBepGeneration(unittest.TestCase):
         generate_build_event_json(target, output_path, "fetch")
 
         expected_cmd = [
+            "/workspace/devkit/build",
             "bazel",
             "--output_base=/tmp/bazel_cache",
             "fetch",
@@ -184,15 +190,20 @@ class TestBepGeneration(unittest.TestCase):
         ]
         mock_run_command.assert_called_once_with(expected_cmd)
 
+    @patch("bep.find_project_root")
     @patch("bep.tempfile.TemporaryDirectory")
     @patch("bep.run_command")
     def test_generate_build_event_json_for_build(
-        self, mock_run_command: MagicMock, mock_tempdir: MagicMock
+        self,
+        mock_run_command: MagicMock,
+        mock_tempdir: MagicMock,
+        mock_find_root: MagicMock,
     ) -> None:
         """
         Tests that `generate_build_event_json` adds the
         `--noremote_accept_cached` flag for the `bazel build` command.
         """
+        mock_find_root.return_value = Path("/workspace")
         mock_tempdir.return_value.__enter__.side_effect = [
             "/tmp/bazel_cache",
             "/tmp/bazel_registry_cache",
@@ -203,6 +214,7 @@ class TestBepGeneration(unittest.TestCase):
         generate_build_event_json(target, output_path, "build")
 
         expected_cmd = [
+            "/workspace/devkit/build",
             "bazel",
             "--output_base=/tmp/bazel_cache",
             "build",

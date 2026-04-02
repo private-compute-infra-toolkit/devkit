@@ -277,18 +277,30 @@ end_of_record
 class TestMainExecution(unittest.TestCase):
     """Tests for functions with side effects like subprocess and sys.exit."""
 
+    @patch("coverage_report.find_project_root")
     @patch("subprocess.run")
-    def test_run_bazel_coverage_success(self, mock_subprocess_run: MagicMock) -> None:
+    def test_run_bazel_coverage_success(
+        self, mock_subprocess_run: MagicMock, mock_find_project_root: MagicMock
+    ) -> None:
         """Tests if run_bazel_coverage returns correct path after successful run."""
+        mock_find_project_root.return_value = Path("/fake/project/root")
         result = run_bazel_coverage("//...")
         mock_subprocess_run.assert_called_once_with(
-            ["bazel", "coverage", "--combined_report=lcov", "//..."],
+            [
+                "/fake/project/root/devkit/build",
+                "bazel",
+                "coverage",
+                "--combined_report=lcov",
+                "//...",
+            ],
             check=True,
             text=True,
             capture_output=False,
             encoding="utf-8",
         )
-        self.assertEqual(Path("bazel-out", "_coverage", "_coverage_report.dat"), result)
+        self.assertEqual(
+            Path("/fake/project/root/bazel-out/_coverage/_coverage_report.dat"), result
+        )
 
     @patch("sys.exit")
     @patch("subprocess.run")

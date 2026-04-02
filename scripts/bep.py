@@ -17,12 +17,16 @@
 This file provides necessary logic to generate BEP.
 """
 
+import logging
 from collections.abc import Sequence
 import argparse
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+
+from find_project_root import find_project_root
 
 
 def run_command(cmd_args: Sequence[str], capture_output: bool = False) -> str:
@@ -35,7 +39,7 @@ def run_command(cmd_args: Sequence[str], capture_output: bool = False) -> str:
     Returns:
         process output if if `capture_output` is True, empty string otherwise
     """
-    print(f"Executing: {' '.join(cmd_args)}")
+    logging.info("Executing: %s", " ".join(cmd_args))
     try:
 
         result = subprocess.run(
@@ -76,11 +80,15 @@ def generate_build_event_json(
     Returns:
         None, it saves BEP to `output_path` file
     """
+    project_root = find_project_root()
+    devkit_build = str(project_root / "devkit" / "build")
+
     with (
         tempfile.TemporaryDirectory() as bazel_cache_dir,
         tempfile.TemporaryDirectory() as bazel_registry_cache_dir,
     ):
         bash_command = [
+            devkit_build,
             "bazel",
             f"--output_base={bazel_cache_dir}",
             bazel_command,
@@ -104,9 +112,9 @@ def _process_target_and_save(
         output_file: path to output file with BEP in json
         command: bazel command used to get BEP ('build' or 'fetch')
     """
-    print(f"\n--- Processing: {bazel_target} ---")
+    logging.info("--- Processing: %s ---", bazel_target)
     generate_build_event_json(bazel_target, output_file, command)
-    print(f"--- Finished processing {bazel_target} ---")
+    logging.info("--- Finished processing %s ---", bazel_target)
 
 
 def generate_bazel_events_folder(
@@ -156,7 +164,9 @@ def main() -> None:
         add_help=False,
     )
 
-    parser.add_argument(
+    options_group = parser.add_argument_group("options")
+
+    options_group.add_argument(
         "-h",
         "--help",
         action="help",
@@ -165,27 +175,39 @@ def main() -> None:
     )
 
     # If target is not provided BEP will be generated for all targets (bazel fetch //...)
-    parser.add_argument(
+    options_group.add_argument(
         "--targets",
         nargs="+",  # One or more arguments
         help="A list of Bazel targets to process.",
         default=[],
     )
-    parser.add_argument(
+    options_group.add_argument(
         "--command",
         choices=["fetch", "build"],
         help="The Bazel command to run ('fetch' or 'build').",
         type=str,
         default="fetch",
     )
-    parser.add_argument(
+    options_group.add_argument(
         "--output_dir",
         help="Output directory for BEP logs.",
         type=Path,
         default=Path("bazel-bep"),
     )
+    options_group.add_argument(
+        "--devkit-log-file",
+        help="Path to a file for logging. If not specified, logs to stderr.",
+        type=Path,
+    )
 
     args = parser.parse_args()
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="[%(asctime)s][%(levelname)s]: %(message)s",
+        filename=args.devkit_log_file,
+        filemode="a" if args.devkit_log_file else "w",
+    )
 
     generate_bazel_events_folder(args.targets, args.command, args.output_dir)
     print("All targets processed successfully.")

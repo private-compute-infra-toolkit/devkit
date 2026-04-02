@@ -1,5 +1,6 @@
 usage: bootstrap [-h] --template TEMPLATE [--templates-root TEMPLATES_ROOT]
                  [--output-dir OUTPUT_DIR] [--args [ARGS ...]]
+                 [--devkit-log-file DEVKIT_LOG_FILE]
 
 Bootstraps a new project from a template.
 
@@ -11,3 +12,5 @@ options:
   --output-dir OUTPUT_DIR
                         The directory where the project will be bootstrapped. Defaults to current directory.
   --args [ARGS ...]     A list of key=value pairs for templating.
+  --devkit-log-file DEVKIT_LOG_FILE
+                        Path to a file for logging. If not specified, logs to stderr.

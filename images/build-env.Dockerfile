@@ -14,9 +14,6 @@
 
 ARG BASE
 
-ARG GOLANG_IMAGE=golang:1.24.5-bookworm
-
-FROM ${GOLANG_IMAGE} AS golang-image
 
 # hadolint ignore=DL3006
 FROM ${BASE}
@@ -26,13 +23,10 @@ ARG UNZIP_VERSION=6.0-*
 ARG GROFF_VERSION=1.23.0-*
 ARG GCLOUD_VERSION=525.0.0
 ARG AWS_CLI_VERSION=2.33.0
-ARG BAZELISK_VERSION=v1.27.0
+ARG BAZELISK_VERSION=v1.28.1
 ARG BUILDIFIER_VERSION=v8.2.1
 ARG GH_VERSION=2.45.0-*
 ARG JQ_VERSION=1.7.1-*
-
-COPY --from=golang-image /usr/local/go/ /usr/local/go/
-ENV PATH="/usr/local/go/bin:${PATH}"
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -52,9 +46,9 @@ RUN unzip /tmp/awscliv2.zip \
  && aws/install \
  && rm -rf aws
 
-RUN export GOBIN=/usr/local/bin \
- && go install github.com/bazelbuild/bazelisk@${BAZELISK_VERSION} \
- && ln -sf ${GOBIN}/bazelisk ${GOBIN}/bazel
+ADD https://github.com/bazelbuild/bazelisk/releases/download/${BAZELISK_VERSION}/bazelisk-linux-amd64 /usr/local/bin/bazelisk
+RUN chmod +x /usr/local/bin/bazelisk \
+ && ln -sf /usr/local/bin/bazelisk /usr/local/bin/bazel
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \

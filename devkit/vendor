@@ -99,7 +99,7 @@ if [[ -z "${DIR}" ]]; then
 fi
 
 if [[ -z "${CONFIG}" ]]; then
-  PROJECT_ROOT="$("${SCRIPTS}"/find_project_root.py)"
+  PROJECT_ROOT="$("${SCRIPTS}/uv" "${SCRIPTS}/find_project_root.py")"
   readonly PROJECT_ROOT
   CONFIG="${PROJECT_ROOT}/devkit.json"
 fi
@@ -144,7 +144,7 @@ else
     # We rely on build.py to ensure the image exists (build or pull) and give us the correct tag.
     # Note: build.py writes logs to DEVKIT_LOG_FILE if set, or stderr.
     # We capture stdout for the tag.
-    TAG=$("${SCRIPTS}/docker/build.py" "${image}" \
+    TAG=$("${SCRIPTS}/uv" "${SCRIPTS}/docker/build.py" "${image}" \
       --print-tag \
       --search-path "${IMAGES}" \
       --log-file "${DEVKIT_LOG_FILE:-/dev/null}" \
