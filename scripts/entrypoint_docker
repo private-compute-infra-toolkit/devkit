@@ -16,6 +16,15 @@
 set -o errexit
 set -o nounset
 
+# If the first argument is --devkit-internal-shim, we are being re-executed by sudo.
+# We set the limits and then execute the actual command.
+if [[ "${1:-}" == "--devkit-internal-shim" ]]; then
+  shift
+  ulimit -H -n "${DEVKIT_NOFILE_HARD}"
+  ulimit -S -n "${DEVKIT_NOFILE_SOFT}"
+  exec "$@"
+fi
+
 SCRIPTS="$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")"
 readonly SCRIPTS
 
@@ -64,7 +73,12 @@ fi
 passwd -d "${USER}"
 
 if ! getent group "${DOCKER_GROUP}" > /dev/null; then
-  groupadd -g "${DOCKER_GROUP_ID}" "${DOCKER_GROUP}"
+  if getent group "${DOCKER_GROUP_ID}" > /dev/null 2>&1; then
+    echo "GID **${DOCKER_GROUP_ID}** is already in use. Creating group **${DOCKER_GROUP}** without specific GID." >&2
+    groupadd "${DOCKER_GROUP}"
+  else
+    groupadd -g "${DOCKER_GROUP_ID}" "${DOCKER_GROUP}"
+  fi
 fi
 usermod -aG "${DOCKER_GROUP}" "${USER}"
 
@@ -106,5 +120,7 @@ fi
 # Report entrypoint end timestamp to the host
 echo "entrypoint_end_time_ms:$(date +%s%3N)" > "/dev/tcp/127.0.0.1/${DEVKIT_SOCKET_PORT}"
 
+# Re-execute this script as the user to ensure ulimits are applied correctly
+# after the sudo session is established.
 exec sudo --preserve-env --preserve-env=HOME -u "${USER}" -g "${GROUP}" \
-  env PATH="${PATH}" "$@"
+  env PATH="${PATH}" "$0" --devkit-internal-shim "$@"

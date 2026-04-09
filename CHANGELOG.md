@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 3.1.0 (2026-04-09)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.36.0
+* **deps:** upgrade git in tool-env to 2.53.0
+
+
+### Features
+
+* automatically grant xhost permission for X11 display
+
+
+### Bug Fixes
+
+* **docs:** update prerequisites
+* propagate host file descriptor limits to docker container
+
 ## 3.0.0 (2026-04-02)
 
 

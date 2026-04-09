@@ -102,6 +102,10 @@ class TestDockerRun(unittest.TestCase):
 
         self.mock_check_output = start_patch("subprocess.check_output")
 
+        self.mock_getrlimit = start_patch(
+            "resource.getrlimit", return_value=(1024, 4096)
+        )
+
     def tearDown(self) -> None:
         for patcher in self.patches:
             patcher.stop()
@@ -142,6 +146,10 @@ class TestDockerRun(unittest.TestCase):
         self.assertIn("--workdir=/project", docker_call_args)
         self.assertIn("--env=HOME=/home/testuser", docker_call_args)
         self.assertIn("--env=DEVKIT_SOCKET_PORT=12345", docker_call_args)
+        self.assertIn("--ulimit", docker_call_args)
+        self.assertIn("nofile=1024:4096", docker_call_args)
+        self.assertIn("--env=DEVKIT_NOFILE_SOFT=1024", docker_call_args)
+        self.assertIn("--env=DEVKIT_NOFILE_HARD=4096", docker_call_args)
         self.assertIn("--env=GOOGLE_CLOUD_PROJECT", docker_call_args)
         self.assertIn("--env=GEMINI_API_KEY", docker_call_args)
         self.assertIn("--env=AWS_SECRET_ACCESS_KEY", docker_call_args)
@@ -231,8 +239,8 @@ class TestDockerRun(unittest.TestCase):
         """Test main function with complex branches."""
         self.mock_stdin_isatty.return_value = False
         self.mock_stdout_isatty.return_value = False
-        self.mock_path_exists.side_effect = lambda path: str(path).endswith(
-            "devkit.json"
+        self.mock_path_exists.side_effect = lambda path: (
+            str(path).endswith("devkit.json") or str(path) == "/etc/gitconfig"
         )
 
         self.mock_open.return_value.__enter__.return_value.read.return_value = (
@@ -260,6 +268,7 @@ class TestDockerRun(unittest.TestCase):
         self.assertIn("--env=ENV_ARG=1", docker_call_args)
         self.assertIn("--interactive", docker_call_args)
         self.assertNotIn("--tty", docker_call_args)
+        self.assertIn("--volume=/etc/gitconfig:/etc/gitconfig", docker_call_args)
 
         self.mock_start_background_cleanup.assert_called_once_with(
             Path("/project/devkit.json"), [IMAGES_DIR]
@@ -348,6 +357,23 @@ class TestDockerRun(unittest.TestCase):
         )
         mock_event_cancel.set.assert_called_once()
         mock_event_thread.join.assert_called_once()
+
+    def test_main_xhost_called(self) -> None:
+        """Test that xhost is called when DISPLAY is in arguments."""
+        os.environ["DEVKIT_HOST_PROJECT_ROOT"] = "/project"
+
+        with patch("sys.argv", ["docker_run.py", "--env=DISPLAY", "image:latest"]):
+            with self.assertRaises(SystemExit) as cm:
+                docker_run.main()
+            self.assertEqual(cm.exception.code, 0)
+
+        xhost_calls = [
+            call
+            for call in self.mock_run.call_args_list
+            if call[0][0] == ["xhost", "+local:testuser"]
+        ]
+        self.assertEqual(len(xhost_calls), 1)
+        self.assertTrue(xhost_calls[0][1].get("check", False))
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -23,6 +23,7 @@ import json
 import logging
 import os
 import pwd
+import resource
 import shlex
 import signal
 import socket
@@ -125,11 +126,15 @@ def main() -> None:
 
     docker_sock = Path("/var/run/docker.sock")
     system_bus_socket = Path("/run/dbus/system_bus_socket")
+    etc_gitconfig = Path("/etc/gitconfig")
 
     mounts: MutableSequence[Path] = [
         docker_sock,
         system_bus_socket,
     ]
+
+    if etc_gitconfig.exists():
+        mounts.append(etc_gitconfig)
 
     user_name = os.environ.get("USER") or pwd.getpwuid(os.getuid()).pw_name
     user_id = int(os.environ.get("USER_ID") or os.getuid())
@@ -241,10 +246,18 @@ def main() -> None:
         start_container_event_handler()
     )
 
+    # Propagate host's file descriptor limits to the container
+    host_soft, host_hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    logging.info(
+        "Container file descriptor limits: soft=%s, hard=%s", host_soft, host_hard
+    )
+
     docker_cmd = [
         "docker",
         "run",
         "--rm",
+        "--ulimit",
+        f"nofile={host_soft}:{host_hard}",
         f"--volume={host_project_root}:{container_project_root}",
         f"--workdir={Path.cwd()}",
         f"--env=HOME={container_home}",
@@ -267,6 +280,8 @@ def main() -> None:
         f"--env=NOBODY_GROUP={nobody_group}",
         f"--env=DBUS_SYSTEM_BUS_ADDRESS=unix:path={system_bus_socket}",
         f"--env=DBUS_SESSION_BUS_ADDRESS=unix:path={session_bus_socket}",
+        f"--env=DEVKIT_NOFILE_SOFT={host_soft}",
+        f"--env=DEVKIT_NOFILE_HARD={host_hard}",
         f"--env=ADDITIONAL_PATH={additional_path_val}",
     ]
     docker_cmd.extend(additional_env)
@@ -288,6 +303,14 @@ def main() -> None:
     cleanup_thread, cleanup_cancel = start_background_cleanup(
         devkit_json_path, [scripts_dir.parent / "images"]
     )
+
+    if any("DISPLAY" in arg for arg in docker_cmd):
+        subprocess.run(
+            ["xhost", f"+local:{user_name}"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=True,
+        )
 
     try:
         result = subprocess.run(docker_cmd, check=False)

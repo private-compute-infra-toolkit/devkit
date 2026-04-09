@@ -30,12 +30,15 @@ ENV PATH="/usr/local/bin:${PATH}"
 COPY --from=docker-buildx-image /buildx /usr/libexec/docker/cli-plugins/docker-buildx
 
 ARG SUDO_VERSION=1.9.15p5-*
-ARG GIT_VERSION=1:2.43.0-*
+ARG GIT_VERSION=1:2.53.0-*
 ARG CA_CERTIFICATES_VERSION=*
 ARG CURL_VERSION=*
 ARG GNUPG_VERSION=*
 
 RUN apt-get update \
+ && apt-get install -y --no-install-recommends software-properties-common \
+ && add-apt-repository ppa:git-core/ppa -y \
+ && apt-get update \
  && apt-get install -y --no-install-recommends \
     ca-certificates=${CA_CERTIFICATES_VERSION} \
     curl=${CURL_VERSION} \
