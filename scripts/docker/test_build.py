@@ -311,6 +311,29 @@ class TestBuildScript(unittest.TestCase):
 
     # --- Tests: Prerequisites ---
 
+    def test_ensure_cloudsdk_python_is_set(self) -> None:
+        """Test the workaround that sets CLOUDSDK_PYTHON."""
+        orig_val = os.environ.get("CLOUDSDK_PYTHON")
+        try:
+            if "CLOUDSDK_PYTHON" in os.environ:
+                del os.environ["CLOUDSDK_PYTHON"]
+
+            with patch("os.path.exists") as mock_exists:
+                mock_exists.side_effect = lambda p: p == "/usr/bin/python3"
+                build.ensure_cloudsdk_python_is_set()
+                self.assertEqual(os.environ.get("CLOUDSDK_PYTHON"), "/usr/bin/python3")
+
+            # If it's already set, it shouldn't overwrite
+            os.environ["CLOUDSDK_PYTHON"] = "/custom/python"
+            build.ensure_cloudsdk_python_is_set()
+            self.assertEqual(os.environ.get("CLOUDSDK_PYTHON"), "/custom/python")
+
+        finally:
+            if orig_val is not None:
+                os.environ["CLOUDSDK_PYTHON"] = orig_val
+            elif "CLOUDSDK_PYTHON" in os.environ:  # pragma: no cover
+                del os.environ["CLOUDSDK_PYTHON"]
+
     def test_check_docker_not_installed(self) -> None:
         """Test failure when docker is not installed."""
         self._mock_docker_calls(self._call_docker_version(FileNotFoundError))

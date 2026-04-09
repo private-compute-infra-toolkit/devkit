@@ -35,6 +35,9 @@ ARG CA_CERTIFICATES_VERSION=*
 ARG CURL_VERSION=*
 ARG GNUPG_VERSION=*
 
+RUN groupadd -r -g 900 polkitd \
+ && useradd -r -g polkitd -u 900 polkitd
+
 RUN apt-get update \
  && apt-get install -y --no-install-recommends software-properties-common \
  && add-apt-repository ppa:git-core/ppa -y \
