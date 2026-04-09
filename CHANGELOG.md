@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 3.2.0 (2026-04-09)
+
+
+### Dependencies
+
+* **deps:** update git to 2.54.0-rc0 and build from source
+
+
+### Bug Fixes
+
+* avoid docker groupd ID conflicts
+* docker image pulling
+
 ## 3.1.0 (2026-04-09)
 
 

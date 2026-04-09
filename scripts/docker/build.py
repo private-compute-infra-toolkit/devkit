@@ -30,6 +30,23 @@ from pathlib import Path
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
+# Workaround for CI when uv is used. uv may install a newer Python version
+# (e.g. 3.12+) which removes the 'imp' module used by older gcloud versions.
+# If gcloud is triggered by a docker credential helper, it may run using the
+# uv Python environment and fail. Setting CLOUDSDK_PYTHON to the system python
+# ensures gcloud uses a compatible version.
+def ensure_cloudsdk_python_is_set() -> None:
+    if "CLOUDSDK_PYTHON" not in os.environ:
+        for candidate in ["/usr/bin/python3", "/usr/bin/python"]:
+            if os.path.exists(candidate):
+                os.environ["CLOUDSDK_PYTHON"] = candidate
+                break
+
+
+ensure_cloudsdk_python_is_set()
+
+
 CONFIG_SCHEMA = {
     "type": dict,
     "properties": {

@@ -73,12 +73,7 @@ fi
 passwd -d "${USER}"
 
 if ! getent group "${DOCKER_GROUP}" > /dev/null; then
-  if getent group "${DOCKER_GROUP_ID}" > /dev/null 2>&1; then
-    echo "GID **${DOCKER_GROUP_ID}** is already in use. Creating group **${DOCKER_GROUP}** without specific GID." >&2
-    groupadd "${DOCKER_GROUP}"
-  else
-    groupadd -g "${DOCKER_GROUP_ID}" "${DOCKER_GROUP}"
-  fi
+  groupadd -g "${DOCKER_GROUP_ID}" "${DOCKER_GROUP}"
 fi
 usermod -aG "${DOCKER_GROUP}" "${USER}"
 
