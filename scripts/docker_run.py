@@ -267,6 +267,7 @@ def main() -> None:
         "--env=AWS_SECRET_ACCESS_KEY",
         "--env=AWS_ACCESS_KEY_ID",
         "--env=AWS_SESSION_TOKEN",
+        "--env=AWS_PAGER",
         "--env=GH_TOKEN",
         f"--env=USER={user_name}",
         f"--env=USER_ID={user_id}",

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 3.3.0 (2026-04-16)
+
+
+### Dependencies
+
+* **deps:** Upgrade gemini-cli to 0.37.1
+* **deps:** Upgrade gemini-cli to 0.38.1
+
 ## 3.2.0 (2026-04-09)
 
 
