@@ -69,6 +69,7 @@ declare -a tools=(
   get-architecture
   coverage
   vendor
+  gitlinks
 )
 
 for tool in "${tools[@]}"; do

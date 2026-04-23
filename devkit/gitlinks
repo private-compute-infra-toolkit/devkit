@@ -1,0 +1,186 @@
+#!/bin/bash
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+function usage() {
+  declare -r -i exitval=${1-1}
+  cat <<USAGE
+usage: $(basename "${BASH_SOURCE[0]}") [-h] {--check|--install|--update}
+
+Manage gitlinks and submodules within the project.
+
+options:
+  -h, --help            Show this help message and exit.
+  --check               Validate that submodules are in sync with gitlinks (disk
+                        matches index) and that gitlinks match their specified
+                        remote branches in .gitmodules. This is typically used
+                        as a pre-commit hook.
+  --install             Add the 'gitlinks' pre-commit hook to
+                        .pre-commit-config.yaml. The hook will run
+                        'devkit/gitlinks --check' automatically.
+  --update              Update all submodules to match their latest remote
+                        branches as specified in .gitmodules, and stage the
+                        changes in the parent repository.
+USAGE
+  exit "${exitval}"
+}
+
+function check() {
+  # Validate submodules are in sync with gitlinks
+  local status_output
+  status_output=$(git submodule status --recursive 2>/dev/null || true)
+  if echo "$status_output" | grep -q "^[^ ]"; then
+    echo "Error: Submodules are out of sync with gitlinks." >&2
+    echo "Please run 'git submodule update --init --recursive'." >&2
+    echo "$status_output" | grep "^[^ ]" >&2
+    exit 1
+  fi
+
+  # Validate gitlinks match branches in .gitmodules
+  submodule_configs=$(git config --file .gitmodules --get-regexp "submodule\..*\.path" || true)
+  if [[ -n "$submodule_configs" ]]; then
+    mismatch_found=0 # Accumulator for errors
+
+    while read -r key path; do
+      [[ -z "$key" ]] && continue
+
+      # Fast native bash string manipulation instead of sed
+      name="${key#submodule.}"
+      name="${name%.path}"
+
+      branch=$(git config --file .gitmodules --get "submodule.$name.branch" || echo "main")
+      url=$(git config --file .gitmodules --get "submodule.$name.url" || true)
+
+      # Catch errors to prevent 'errexit' from killing the script instantly
+      current_sha=$(git rev-parse ":$path" 2>/dev/null || true)
+      target_sha=$(git ls-remote "$url" "$branch" | awk '{print $1}' || true)
+
+      # Validate that we successfully fetched the SHAs
+      if [[ -z "$current_sha" || -z "$target_sha" ]]; then
+        echo "Error: Could not resolve SHAs for submodule '$name' at path '$path'." >&2
+        echo "       Check if the submodule URL is reachable and initialized." >&2
+        mismatch_found=1
+        continue
+      fi
+
+      if [[ "$current_sha" != "$target_sha" ]]; then
+        echo "Error: Submodule '$path' gitlink ($current_sha) does not match remote branch '$branch' ($target_sha)." >&2
+        echo "       Fix: Run '$0 --update' or update .gitmodules." >&2
+        mismatch_found=1
+      fi
+    done <<< "$submodule_configs"
+
+    # Fail at the end if any submodules were out of sync
+    if [[ "$mismatch_found" -ne 0 ]]; then
+        exit 1
+    fi
+  fi
+}
+
+function install() {
+  local config_file=".pre-commit-config.yaml"
+
+  if [[ ! -f "${config_file}" ]]; then
+    echo "Error: ${config_file} not found in current directory." >&2
+    echo "Please run this script from the root of your project." >&2
+    exit 1
+  fi
+
+  if grep -q "id: gitlinks" "${config_file}"; then
+    echo "The gitlinks hook is already present in ${config_file}."
+    return 0
+  fi
+
+  local hook_block="      - id: gitlinks
+        name: Check gitlinks
+        language: script
+        entry: devkit/gitlinks --check
+        always_run: true
+        pass_filenames: false"
+
+  # Check if 'repo: local' section exists
+  if grep -q "repo: local" "${config_file}"; then
+    echo "Found 'repo: local' section. Adding hook..."
+
+    # Insert under 'repo: local' -> 'hooks:'
+    awk -v hook_block="${hook_block}" '
+      /repo: local/ { in_local = 1 }
+      in_local && /hooks:/ {
+        print $0;
+        print hook_block;
+        in_local = 0;
+        next;
+      }
+      { print }
+    ' "${config_file}" > "${config_file}.tmp"
+
+    mv "${config_file}.tmp" "${config_file}"
+    echo "Successfully added gitlinks hook to 'repo: local' section."
+  else
+    echo "'repo: local' section not found. Appending to the end of ${config_file}..."
+    cat <<EOF >> "${config_file}"
+
+  - repo: local
+    hooks:
+${hook_block}
+EOF
+    echo "Successfully appended 'repo: local' section with gitlinks hook."
+  fi
+}
+
+function update() {
+  echo "Updating all submodules to match their remote branches..."
+  git submodule update --remote --recursive
+
+  # Stage the updated gitlinks so they are in sync with the index
+  submodule_paths=$(git config --file .gitmodules --get-regexp "submodule\..*\.path" | awk '{print $2}' || true)
+  if [[ -n "$submodule_paths" ]]; then
+    while read -r path; do
+      if [[ -n "$path" ]]; then
+        git add "$path"
+      fi
+    done <<< "$submodule_paths"
+  fi
+
+  echo "Submodules updated and staged."
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h | --help)
+      usage 0
+      ;;
+    --check)
+      check
+      exit 0
+      ;;
+    --install)
+      install
+      exit 0
+      ;;
+    --update)
+      update
+      exit 0
+      ;;
+    *)
+      usage
+      ;;
+  esac
+done
+
+usage

@@ -1,0 +1,16 @@
+usage: gitlinks [-h] {--check|--install|--update}
+
+Manage gitlinks and submodules within the project.
+
+options:
+  -h, --help            Show this help message and exit.
+  --check               Validate that submodules are in sync with gitlinks (disk
+                        matches index) and that gitlinks match their specified
+                        remote branches in .gitmodules. This is typically used
+                        as a pre-commit hook.
+  --install             Add the 'gitlinks' pre-commit hook to
+                        .pre-commit-config.yaml. The hook will run
+                        'devkit/gitlinks --check' automatically.
+  --update              Update all submodules to match their latest remote
+                        branches as specified in .gitmodules, and stage the
+                        changes in the parent repository.

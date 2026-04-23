@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 3.4.0 (2026-04-23)
+
+
+### Dependencies
+
+* **deps:** Update apt packages (diff hash: b8e5e7c1)
+* **deps:** Update apt packages (diff hash: f33ba631)
+* **deps:** Upgrade gemini-cli to 0.38.2
+
+
+### Features
+
+* Add devkit/gitlinks command
+* add license header check in templates
+* automate apt package updates
+* automate apt package updates
+
+
+### Bug Fixes
+
+* Load function definitions before use in upgrade_packages
+* Make upgrade_gemini_cli script locally executable
+* source lib_build.sh using absolute path in gob_utils.sh
+
 ## 3.3.0 (2026-04-16)
 
 
