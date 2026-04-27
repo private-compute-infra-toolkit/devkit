@@ -71,36 +71,43 @@ git submodule add "${REMOTE_REPO_2}" sub2
 git commit -m "add submodules"
 "${GITLINKS_CMD}" --check
 
-# Test case 1.3: Submodule out of sync (index != disk)
+# Test case 1.3: Submodule out of sync (index != disk) - should NOT fail now
 pushd sub1
 git commit --allow-empty -m "new commit on disk"
 popd
 
-# Now it is out of sync
-OUTPUT=$( "${GITLINKS_CMD}" --check 2>&1 || true )
-EXPECTED="Error: Submodules are out of sync with gitlinks."
-if [[ ! "${OUTPUT}" =~ ${EXPECTED} ]]; then
-  echo "Test Case 1.3 Failed: Expected error message to contain: ${EXPECTED}"
-  echo "Actual output: ${OUTPUT}"
-  exit 1
-fi
-
-git submodule update --init --recursive
+# It should still pass because we only check index vs remote
 "${GITLINKS_CMD}" --check
 
-# Test case 1.4: Submodule SHA mismatch with remote branch (index == disk != remote)
+# Test case 1.4: Submodule SHA mismatch with remote branch (index != remote)
 pushd "${REMOTE_REPO_2}"
 git commit --allow-empty -m "update remote 2"
 popd
 
 # target_sha (remote) will be newer than current_sha (index)
 OUTPUT=$( "${GITLINKS_CMD}" --check 2>&1 || true )
-EXPECTED="Error: Submodule 'sub2' gitlink (.*) does not match remote branch 'main' (.*)."
+EXPECTED="Mismatch in 'sub2':.*Index Gitlink:.*Remote \(main\):"
 if [[ ! "${OUTPUT}" =~ ${EXPECTED} ]]; then
   echo "Test Case 1.4 Failed: Expected error message to match pattern: ${EXPECTED}"
   echo "Actual output: ${OUTPUT}"
   exit 1
 fi
+
+# Fix sub2 index to match remote for next tests
+git submodule update --remote sub2
+git add sub2
+
+# Test case 1.5: Submodules not initialized on disk
+# Clean up disk but keep in index
+rm -rf sub1 sub2
+# This should now pass because index matches remote, even though disk is gone
+"${GITLINKS_CMD}" --check
+
+# Restore submodules and prepare for Group 2
+git submodule update --init --recursive
+pushd "${REMOTE_REPO_1}"
+git commit --allow-empty -m "update remote 1"
+popd
 
 # --- Test Group 2: --update ---
 echo "Testing --update..."

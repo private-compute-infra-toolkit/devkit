@@ -41,55 +41,54 @@ USAGE
 }
 
 function check() {
-  # Validate submodules are in sync with gitlinks
-  local status_output
-  status_output=$(git submodule status --recursive 2>/dev/null || true)
-  if echo "$status_output" | grep -q "^[^ ]"; then
-    echo "Error: Submodules are out of sync with gitlinks." >&2
-    echo "Please run 'git submodule update --init --recursive'." >&2
-    echo "$status_output" | grep "^[^ ]" >&2
-    exit 1
+  # 1. Get all submodule paths from .gitmodules
+  submodule_configs=$(git config --file .gitmodules --get-regexp "submodule\..*\.path" || true)
+
+  if [[ -z "$submodule_configs" ]]; then
+    echo "No submodules found in .gitmodules."
+    return 0
   fi
 
-  # Validate gitlinks match branches in .gitmodules
-  submodule_configs=$(git config --file .gitmodules --get-regexp "submodule\..*\.path" || true)
-  if [[ -n "$submodule_configs" ]]; then
-    mismatch_found=0 # Accumulator for errors
+  mismatch_found=0
 
     while read -r key path; do
       [[ -z "$key" ]] && continue
 
-      # Fast native bash string manipulation instead of sed
+      # Extract submodule name
       name="${key#submodule.}"
       name="${name%.path}"
 
       branch=$(git config --file .gitmodules --get "submodule.$name.branch" || echo "main")
       url=$(git config --file .gitmodules --get "submodule.$name.url" || true)
 
-      # Catch errors to prevent 'errexit' from killing the script instantly
       current_sha=$(git rev-parse ":$path" 2>/dev/null || true)
       target_sha=$(git ls-remote "$url" "$branch" | awk '{print $1}' || true)
 
-      # Validate that we successfully fetched the SHAs
-      if [[ -z "$current_sha" || -z "$target_sha" ]]; then
-        echo "Error: Could not resolve SHAs for submodule '$name' at path '$path'." >&2
-        echo "       Check if the submodule URL is reachable and initialized." >&2
+      if [[ -z "$current_sha" ]]; then
+        echo "Error: Submodule '$name' path '$path' not found in parent index." >&2
+        mismatch_found=1
+        continue
+      fi
+
+      if [[ -z "$target_sha" ]]; then
+        echo "Error: Could not reach remote for '$name' ($url)." >&2
         mismatch_found=1
         continue
       fi
 
       if [[ "$current_sha" != "$target_sha" ]]; then
-        echo "Error: Submodule '$path' gitlink ($current_sha) does not match remote branch '$branch' ($target_sha)." >&2
-        echo "       Fix: Run '$0 --update' or update .gitmodules." >&2
+        echo "Mismatch in '$path':" >&2
+        echo "   Index Gitlink: $current_sha" >&2
+        echo "   Remote ($branch): $target_sha" >&2
         mismatch_found=1
+      else
+        echo "'$path' matches remote."
       fi
     done <<< "$submodule_configs"
 
-    # Fail at the end if any submodules were out of sync
     if [[ "$mismatch_found" -ne 0 ]]; then
-        exit 1
+      exit 1
     fi
-  fi
 }
 
 function install() {
