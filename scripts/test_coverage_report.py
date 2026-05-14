@@ -30,6 +30,7 @@ from coverage_report import (
     parse_lcov_data_line,
     generate_lcov_report,
     print_and_validate_report,
+    parse_thresholds_file,
     run_bazel_coverage,
     main,
 )
@@ -273,6 +274,38 @@ end_of_record
 
         self.assertNotIn("All covered!", output)
 
+    def test_print_and_validate_report_with_file_thresholds(self) -> None:
+        """Tests per-file line and branch thresholds overriding global ones."""
+        cov_fail = FileCoverage("a.py")
+        cov_fail.lines_found = 10
+        cov_fail.lines_hit = 5  # 50%
+        cov_fail.branches_found = 10
+        cov_fail.branches_hit = 5  # 50%
+
+        coverage_data = {"a.py": cov_fail}
+        string_io = io.StringIO()
+        with redirect_stdout(string_io):
+            is_valid = print_and_validate_report(
+                coverage_data,
+                0.9,
+                0.9,
+                file_lines_thresholds={"a.py": 0.4},
+                file_branch_thresholds={"a.py": 0.3},
+            )
+        output = string_io.getvalue()
+        self.assertIn("a.py", output)
+        self.assertIn("50.00% /  40.00%", output)
+        self.assertIn("50.00% /  30.00%", output)
+        self.assertTrue(is_valid)
+
+    def test_parse_thresholds_file(self) -> None:
+        """Tests directly parsing a JSON thresholds configuration file."""
+        mock_file = mock_open(read_data='{"a.py": {"lines": 50, "branch": 50}}')
+        with patch("pathlib.Path.open", mock_file):
+            lines, branches = parse_thresholds_file(Path("fake.json"))
+        self.assertEqual({"a.py": 0.5}, lines)
+        self.assertEqual({"a.py": 0.5}, branches)
+
 
 class TestMainExecution(unittest.TestCase):
     """Tests for functions with side effects like subprocess and sys.exit."""
@@ -454,6 +487,66 @@ class TestMainExecution(unittest.TestCase):
         self.assertIn("Error: Bazel coverage failed with exit code 1.", output)
         self.assertIn(f"STDOUT:\n{stdout_output}", output)
         self.assertIn(f"STDERR:\n{stderr_output}", output)
+
+    @patch("sys.argv", ["coverage_report.py", "--thresholds-file", "fake.json"])
+    @patch("coverage_report.parse_thresholds_file")
+    @patch("coverage_report.generate_lcov_report")
+    @patch("coverage_report.run_bazel_coverage")
+    def test_main_with_thresholds_file(
+        self,
+        mock_run_bazel: MagicMock,
+        mock_generate_report: MagicMock,
+        mock_parse_thresholds: MagicMock,
+    ) -> None:
+        """Tests reading valid JSON thresholds file in main."""
+        mock_generate_report.return_value = True
+        mock_parse_thresholds.return_value = ({"a.py": 0.5}, {"a.py": 0.5})
+        main()
+        mock_parse_thresholds.assert_called_once_with(Path("fake.json"))
+        mock_generate_report.assert_called_once()
+        mock_run_bazel.assert_called_once()
+
+    @patch("sys.exit")
+    def test_parse_thresholds_file_invalid_root(self, mock_sys_exit: MagicMock) -> None:
+        """Tests error when thresholds file root is not a JSON object."""
+        mock_sys_exit.side_effect = SystemExit(1)
+        mock_file = mock_open(read_data="[]")
+        with patch("pathlib.Path.open", mock_file):
+            with self.assertRaises(SystemExit):
+                parse_thresholds_file(Path("fake.json"))
+
+    @patch("sys.exit")
+    def test_parse_thresholds_file_invalid_values(
+        self, mock_sys_exit: MagicMock
+    ) -> None:
+        """Tests error when thresholds file values are not a JSON object."""
+        mock_sys_exit.side_effect = SystemExit(1)
+        mock_file = mock_open(read_data='{"a.py": []}')
+        with patch("pathlib.Path.open", mock_file):
+            with self.assertRaises(SystemExit):
+                parse_thresholds_file(Path("fake.json"))
+
+    @patch("sys.exit")
+    def test_parse_thresholds_file_lines_out_of_bounds(
+        self, mock_sys_exit: MagicMock
+    ) -> None:
+        """Tests error when thresholds file lines value is out of bounds."""
+        mock_sys_exit.side_effect = SystemExit(1)
+        mock_file = mock_open(read_data='{"a.py": {"lines": 105}}')
+        with patch("pathlib.Path.open", mock_file):
+            with self.assertRaises(SystemExit):
+                parse_thresholds_file(Path("fake.json"))
+
+    @patch("sys.exit")
+    def test_parse_thresholds_file_branch_out_of_bounds(
+        self, mock_sys_exit: MagicMock
+    ) -> None:
+        """Tests error when thresholds file branch value is out of bounds."""
+        mock_sys_exit.side_effect = SystemExit(1)
+        mock_file = mock_open(read_data='{"a.py": {"branch": -5}}')
+        with patch("pathlib.Path.open", mock_file):
+            with self.assertRaises(SystemExit):
+                parse_thresholds_file(Path("fake.json"))
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -1,4 +1,5 @@
 usage: coverage [-h] [--target TARGET] [--lines LINES] [--branch BRANCH]
+                [--thresholds-file THRESHOLDS_FILE]
                 [--devkit-log-file DEVKIT_LOG_FILE]
 
 Generate unit test coverage report for Bazel workspace.
@@ -12,6 +13,9 @@ options:
   --branch BRANCH       Threshold for the branch coverage report to pass (in
                         percentage). If any branch coverage for a file is
                         below threshold, script fails.
+  --thresholds-file THRESHOLDS_FILE
+                        Path to a JSON file containing per-file coverage
+                        thresholds.
   --devkit-log-file DEVKIT_LOG_FILE
                         Path to a file for logging. If not specified, logs to
                         stderr.

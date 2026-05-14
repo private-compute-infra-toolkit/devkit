@@ -17,3 +17,4 @@
 #include <string>
 
 std::string GetGreeterMessage();
+std::string GetUncoveredMessage();

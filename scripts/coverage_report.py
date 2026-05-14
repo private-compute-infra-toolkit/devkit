@@ -15,6 +15,7 @@
 
 from collections.abc import Mapping, Sequence
 import argparse
+import json
 import logging
 import pathlib
 import subprocess
@@ -57,12 +58,12 @@ class FileCoverage:
             return 1.0
         return self.branches_hit / self.branches_found
 
-    def generate_summary_line(self) -> str:
+    def generate_summary_line(self, target_lines: float, target_branch: float) -> str:
         """Generates a formatted string for the main summary table."""
         return (
             f"{fit_to_column(self.file_path)} | "
-            f"{self.line_coverage_percent():>7.2%} | "
-            f"{self.branch_coverage_percent():>10.2%}"
+            f"{self.line_coverage_percent():>7.2%} / {target_lines:>7.2%} | "
+            f"{self.branch_coverage_percent():>7.2%} / {target_branch:>7.2%}"
         )
 
     def get_missing_branches_str(self) -> str:
@@ -126,6 +127,8 @@ def print_and_validate_report(
     coverage_data: Mapping[str, FileCoverage],
     lines_threshold: float,
     branch_threshold: float,
+    file_lines_thresholds: Mapping[str, float] | None = None,
+    file_branch_thresholds: Mapping[str, float] | None = None,
 ) -> bool:
     """Prints a summary report and validates coverage against a threshold.
 
@@ -133,33 +136,45 @@ def print_and_validate_report(
         coverage_data: A dictionary of coverage data from the LCOV file.
         lines_threshold: Minimum line coverage threshold for a file.
         branch_threshold: Minimum branch coverage threshold for a file.
+        file_lines_thresholds: Specific line coverage thresholds per file.
+        file_branch_thresholds: Specific branch coverage thresholds per file.
 
     Returns:
         True if all files meet the threshold, False otherwise.
     """
+    if file_lines_thresholds is None:
+        file_lines_thresholds = {}
+    if file_branch_thresholds is None:
+        file_branch_thresholds = {}
     is_coverage_valid = True
     overall_lines_coverage: float = 0.0
     overall_branch_coverage: float = 0.0
     n_files: int = len(coverage_data)
 
-    print(f"{'file':<50} | {'Lines %':<.9} | Branches %")
-    print("-" * 73)
+    print(f"{'file':<50} | {'Lines %':<17} | Branches %")
+    print("-" * 90)
 
     for file_coverage in coverage_data.values():
-        print(file_coverage.generate_summary_line())
         lines_cov = file_coverage.line_coverage_percent()
         branch_cov = file_coverage.branch_coverage_percent()
-        if lines_cov < lines_threshold or branch_cov < branch_threshold:
+        target_lines = file_lines_thresholds.get(
+            file_coverage.file_path, lines_threshold
+        )
+        target_branch = file_branch_thresholds.get(
+            file_coverage.file_path, branch_threshold
+        )
+        print(file_coverage.generate_summary_line(target_lines, target_branch))
+        if lines_cov < target_lines or branch_cov < target_branch:
             is_coverage_valid = False
 
         overall_lines_coverage += lines_cov / n_files
         overall_branch_coverage += branch_cov / n_files
 
     # Print overall coverage
-    print("-" * 73)
+    print("-" * 90)
+    lines_total_str = f"{overall_lines_coverage:>7.2%}"
     print(
-        f"{'Total':<50} | {overall_lines_coverage:>7.2%} | "
-        f"{overall_branch_coverage:>10.2%}"
+        f"{'Total':<50} | {lines_total_str:<17} | " f"{overall_branch_coverage:>7.2%}"
     )
 
     print("\n--- Missing Coverage ---")
@@ -218,6 +233,8 @@ def generate_lcov_report(
     file_path: pathlib.Path,
     lines_threshold: float,
     branch_threshold: float,
+    file_lines_thresholds: Mapping[str, float] | None = None,
+    file_branch_thresholds: Mapping[str, float] | None = None,
 ) -> bool:
     """
     Parses a bazel lcov file and prints a comprehensive coverage report.
@@ -226,10 +243,16 @@ def generate_lcov_report(
         file_path: Path to the bazel lcov file.
         lines_threshold: Minimum line coverage threshold for a file.
         branch_threshold: Minimum branch coverage threshold for a file.
+        file_lines_thresholds: Specific line coverage thresholds per file.
+        file_branch_thresholds: Specific branch coverage thresholds per file.
 
     Returns:
         True if every file coverage is equal or above threshold, false otherwise.
     """
+    if file_lines_thresholds is None:
+        file_lines_thresholds = {}
+    if file_branch_thresholds is None:
+        file_branch_thresholds = {}
     # A dictionary to hold FileCoverage objects, keyed by file path.
     coverage_data: dict[str, FileCoverage] = {}
     current_file_path: str | None = None
@@ -252,7 +275,11 @@ def generate_lcov_report(
                     parse_lcov_data_line(line, current_coverage)
 
             return print_and_validate_report(
-                coverage_data, lines_threshold, branch_threshold
+                coverage_data,
+                lines_threshold,
+                branch_threshold,
+                file_lines_thresholds,
+                file_branch_thresholds,
             )
     except FileNotFoundError:
         print(f"File not found: {file_path.as_posix()}")
@@ -335,6 +362,47 @@ def run_bazel_coverage(target: str) -> pathlib.Path:
         sys.exit(1)
 
 
+def parse_thresholds_file(
+    file_path: pathlib.Path,
+) -> tuple[dict[str, float], dict[str, float]]:
+    """Parses a JSON thresholds configuration file.
+
+    Args:
+        file_path: Path to the JSON file.
+
+    Returns:
+        A tuple of (file_lines, file_branch) mapping filepaths to coverage thresholds.
+    """
+    file_lines: dict[str, float] = {}
+    file_branch: dict[str, float] = {}
+    try:
+        with file_path.open("r", encoding="utf-8") as f:
+            thresholds_data = json.load(f)
+            if not isinstance(thresholds_data, dict):
+                raise ValueError("Root element must be a JSON object.")
+            for filepath, values in thresholds_data.items():
+                if not isinstance(values, dict):
+                    raise ValueError(f"Values for {filepath} must be a JSON object.")
+                if "lines" in values:
+                    val = float(values["lines"])
+                    if not 0.0 <= val <= 100.0:
+                        raise ValueError(
+                            f"Lines for {filepath} must be in [0.0, 100.0]"
+                        )
+                    file_lines[filepath] = val / 100.0
+                if "branch" in values:
+                    val = float(values["branch"])
+                    if not 0.0 <= val <= 100.0:
+                        raise ValueError(
+                            f"Branch for {filepath} must be in [0.0, 100.0]"
+                        )
+                    file_branch[filepath] = val / 100.0
+    except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+        print(f"Error reading thresholds file: {e}")
+        sys.exit(1)
+    return file_lines, file_branch
+
+
 def main() -> None:
     """
     Main function, parses arguments and run generate_lcov_report.
@@ -378,6 +446,11 @@ def main() -> None:
         default=100.0,
     )
     parser.add_argument(
+        "--thresholds-file",
+        type=pathlib.Path,
+        help="Path to a JSON file containing per-file coverage thresholds.",
+    )
+    parser.add_argument(
         "--devkit-log-file",
         help="Path to a file for logging. If not specified, logs to stderr.",
         type=pathlib.Path,
@@ -397,12 +470,21 @@ def main() -> None:
             print(f"Error: {name} threshold value must be in range [0.0, 100.0]")
             sys.exit(1)
 
+    file_lines: dict[str, float] = {}
+    file_branch: dict[str, float] = {}
+    if args.thresholds_file:
+        file_lines, file_branch = parse_thresholds_file(args.thresholds_file)
+
     logging.info("Running Bazel Coverage")
     report_path = run_bazel_coverage(args.target)
 
     logging.info("Generating coverage report")
     coverage_passed = generate_lcov_report(
-        report_path, float(args.lines) / 100, float(args.branch) / 100
+        report_path,
+        float(args.lines) / 100,
+        float(args.branch) / 100,
+        file_lines,
+        file_branch,
     )
 
     if coverage_passed:

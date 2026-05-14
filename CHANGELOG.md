@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 3.6.0 (2026-05-14)
+
+
+### Dependencies
+
+* **deps:** Update apt packages (diff hash: 1ebdf552)
+* **deps:** Update apt packages (diff hash: 99f936d6)
+* **deps:** Update apt packages (diff hash: af08c6b7)
+* **deps:** Upgrade gemini-cli to 0.40.1
+* **deps:** Upgrade gemini-cli to 0.41.1
+* **deps:** Upgrade gemini-cli to 0.42.0
+
+
+### Features
+
+* support per-file coverage thresholds
+* update coverage report to display target thresholds
+
+
+### Bug Fixes
+
+* rollback to VSCode 1.118.1
+
 ## 3.5.0 (2026-04-27)
 
 

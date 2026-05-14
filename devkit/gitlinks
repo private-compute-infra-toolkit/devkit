@@ -42,53 +42,53 @@ USAGE
 
 function check() {
   # 1. Get all submodule paths from .gitmodules
-  submodule_configs=$(git config --file .gitmodules --get-regexp "submodule\..*\.path" || true)
-
-  if [[ -z "$submodule_configs" ]]; then
+  declare submodule_configs
+  submodule_configs="$(git config --file .gitmodules --get-regexp "submodule\..*\.path" || true)"
+  if [[ -z "${submodule_configs}" ]]; then
     echo "No submodules found in .gitmodules."
     return 0
   fi
 
-  mismatch_found=0
-
-    while read -r key path; do
-      [[ -z "$key" ]] && continue
-
-      # Extract submodule name
-      name="${key#submodule.}"
-      name="${name%.path}"
-
-      branch=$(git config --file .gitmodules --get "submodule.$name.branch" || echo "main")
-      url=$(git config --file .gitmodules --get "submodule.$name.url" || true)
-
-      current_sha=$(git rev-parse ":$path" 2>/dev/null || true)
-      target_sha=$(git ls-remote "$url" "$branch" | awk '{print $1}' || true)
-
-      if [[ -z "$current_sha" ]]; then
-        echo "Error: Submodule '$name' path '$path' not found in parent index." >&2
-        mismatch_found=1
-        continue
-      fi
-
-      if [[ -z "$target_sha" ]]; then
-        echo "Error: Could not reach remote for '$name' ($url)." >&2
-        mismatch_found=1
-        continue
-      fi
-
-      if [[ "$current_sha" != "$target_sha" ]]; then
-        echo "Mismatch in '$path':" >&2
-        echo "   Index Gitlink: $current_sha" >&2
-        echo "   Remote ($branch): $target_sha" >&2
-        mismatch_found=1
-      else
-        echo "'$path' matches remote."
-      fi
-    done <<< "$submodule_configs"
-
-    if [[ "$mismatch_found" -ne 0 ]]; then
-      exit 1
+  declare branch url current_sha target_sha
+  declare -i mismatch_found=0
+  while read -r key path; do
+    if [[ -z "${key}" ]]; then
+      continue
     fi
+
+    # Extract submodule name
+    name="${key#submodule.}"
+    name="${name%.path}"
+    branch="$(git config --file .gitmodules --get "submodule.$name.branch" || echo "main")"
+    url="$(git config --file .gitmodules --get "submodule.$name.url" || true)"
+
+    current_sha="$(git rev-parse ":$path" 2>/dev/null || true)"
+    if [[ -z "${current_sha}" ]]; then
+      echo "Error: Submodule '${name}' path '${path}' not found in parent index." >&2
+      mismatch_found=1
+      continue
+    fi
+
+    target_sha="$(git ls-remote "${url}" "${branch}" | awk '{print $1}' || true)"
+    if [[ -z "${target_sha}" ]]; then
+      echo "Error: Could not reach remote for '${name}' (${url})." >&2
+      mismatch_found=1
+      continue
+    fi
+
+    if [[ "${current_sha}" != "${target_sha}" ]]; then
+      echo "Mismatch in '${path}':" >&2
+      echo "   Index Gitlink: ${current_sha}" >&2
+      echo "   Remote (${branch}): ${target_sha}" >&2
+      mismatch_found=1
+    else
+      echo "'${path}' matches remote."
+    fi
+  done <<< "${submodule_configs}"
+
+  if [[ ${mismatch_found} -ne 0 ]]; then
+    exit 1
+  fi
 }
 
 function install() {
@@ -147,13 +147,14 @@ function update() {
   git submodule update --remote --recursive
 
   # Stage the updated gitlinks so they are in sync with the index
-  submodule_paths=$(git config --file .gitmodules --get-regexp "submodule\..*\.path" | awk '{print $2}' || true)
-  if [[ -n "$submodule_paths" ]]; then
+  declare submodule_paths
+  submodule_paths="$(git config --file .gitmodules --get-regexp "submodule\..*\.path" | awk '{print $2}' || true)"
+  if [[ -n "${submodule_paths}" ]]; then
     while read -r path; do
-      if [[ -n "$path" ]]; then
-        git add "$path"
+      if [[ -n "${path}" ]]; then
+        git add "${path}"
       fi
-    done <<< "$submodule_paths"
+    done <<< "${submodule_paths}"
   fi
 
   echo "Submodules updated and staged."
