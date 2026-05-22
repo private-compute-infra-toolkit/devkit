@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 3.7.0 (2026-05-22)
+
+
+### Dependencies
+
+* **deps:** update VSCode to 1.121.0
+
 ## 3.6.0 (2026-05-14)
 
 
