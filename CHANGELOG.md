@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 3.9.0 (2026-06-16)
+
+
+### Dependencies
+
+* **deps:** Update apt packages (diff hash: 5203f152)
+* **deps:** Update apt packages (diff hash: cfb04cda)
+* **deps:** Upgrade gemini-cli to 0.44.1
+* **deps:** Upgrade gemini-cli to 0.46.0
+
 ## 3.8.0 (2026-05-28)
 
 
