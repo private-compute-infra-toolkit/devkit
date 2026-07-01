@@ -21,7 +21,7 @@ FROM ${BASE}
 ARG LIBXML2_VERSION=2.9.14+dfsg-*
 ARG UNZIP_VERSION=6.0-*
 ARG GROFF_VERSION=1.23.0-*
-ARG GCLOUD_VERSION=525.0.0
+ARG GCLOUD_VERSION=574.0.0
 ARG AWS_CLI_VERSION=2.33.0
 ARG BAZELISK_VERSION=v1.28.1
 ARG BUILDIFIER_VERSION=v8.2.1
@@ -38,6 +38,7 @@ RUN apt-get update \
 ADD https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-x86_64.tar.gz /tmp/gcloud.tar.gz
 RUN tar -xf /tmp/gcloud.tar.gz \
  && ./google-cloud-sdk/install.sh --quiet --usage-reporting false --override-components docker-credential-gcr \
+ && ./google-cloud-sdk/bin/gcloud components install enterprise-certificate-proxy --quiet \
  && rm /tmp/gcloud.tar.gz
 ENV PATH="/google-cloud-sdk/bin:${PATH}"
 

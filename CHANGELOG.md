@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 3.10.0 (2026-07-01)
+
+
+### Dependencies
+
+* **deps:** Update apt packages (diff hash: f57195f4)
+* **deps:** Upgrade gemini-cli to 0.47.0
+
+
+### Features
+
+* add comments and --update to checksum script
+* support gcloud client certificate authentication
+
 ## 3.9.0 (2026-06-16)
 
 

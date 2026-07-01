@@ -375,6 +375,25 @@ class TestDockerRun(unittest.TestCase):
         self.assertEqual(len(xhost_calls), 1)
         self.assertTrue(xhost_calls[0][1].get("check", False))
 
+    def test_main_cloudsdk_context_propagation(self) -> None:
+        """Test that CLOUDSDK_CONTEXT_* env vars are propagated."""
+        os.environ["CLOUDSDK_CONTEXT_AWARE_USE_CLIENT_CERTIFICATE"] = "true"
+        os.environ["CLOUDSDK_CONTEXT_AWARE_SOME_OTHER_VAR"] = "value"
+        os.environ["CLOUDSDK_OTHER_VAR"] = "should_not_propagate"
+        os.environ["DEVKIT_HOST_PROJECT_ROOT"] = "/project"
+
+        with patch("sys.argv", ["docker_run.py", "image:latest"]):
+            with self.assertRaises(SystemExit) as cm:
+                docker_run.main()
+            self.assertEqual(cm.exception.code, 0)
+
+        docker_call_args = self.mock_run.call_args_list[-1][0][0]
+        self.assertIn(
+            "--env=CLOUDSDK_CONTEXT_AWARE_USE_CLIENT_CERTIFICATE", docker_call_args
+        )
+        self.assertIn("--env=CLOUDSDK_CONTEXT_AWARE_SOME_OTHER_VAR", docker_call_args)
+        self.assertNotIn("--env=CLOUDSDK_OTHER_VAR", docker_call_args)
+
 
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

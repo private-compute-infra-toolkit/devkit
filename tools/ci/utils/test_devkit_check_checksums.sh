@@ -88,4 +88,128 @@ if [[ "${OUTPUT}" != "${EXPECTED}" ]]; then
   exit 1
 fi
 
+# Test case 5: Checksums with comments
+echo "Hello World" > "test1.txt"
+echo "Goodbye World" > "test2.txt"
+CHECKSUM1=$(sha256sum "test1.txt" | awk '{print $1}')
+CHECKSUM2=$(sha256sum "test2.txt" | awk '{print $1}')
+
+cat <<EOF > "checksums.txt"
+# This is a comment line
+  # This is also a comment line with leading spaces
+${CHECKSUM1}  test1.txt
+# Another comment
+${CHECKSUM2}  test2.txt # inline comment
+  # comment with leading spaces
+EOF
+
+OUTPUT=$( "${DEVKIT_CHECK_CHECKSUMS}" 2>&1 | strip_colors )
+EXPECTED="Verifying checksum for test1.txt ... OK
+Verifying checksum for test2.txt ... OK
+All checksums verified successfully."
+if [[ "${OUTPUT}" != "${EXPECTED}" ]]; then
+  echo "Test Case 5 Failed: Expected output: ${EXPECTED}"
+  echo "Actual output: ${OUTPUT}"
+  exit 1
+fi
+
+# Test case 6: checksums.txt with only comments
+echo "# Only comments" > "checksums.txt"
+echo "  # and indented comments" >> "checksums.txt"
+OUTPUT=$( "${DEVKIT_CHECK_CHECKSUMS}" 2>&1 | strip_colors )
+EXPECTED="No files to verify. The checksums.txt is empty or only contains whitespace."
+if [[ "${OUTPUT}" != "${EXPECTED}" ]]; then
+  echo "Test Case 6 Failed: Expected output: ${EXPECTED}"
+  echo "Actual output: ${OUTPUT}"
+  exit 1
+fi
+
+# Test case 7: Successful update preserving comments
+echo "Hello World" > "test1.txt"
+echo "Goodbye World" > "test2.txt"
+CHECKSUM1=$(sha256sum "test1.txt" | awk '{print $1}')
+CHECKSUM2=$(sha256sum "test2.txt" | awk '{print $1}')
+
+# Create checksums.txt with OLD/WRONG checksums and comments
+cat <<EOF > "checksums.txt"
+# Header comment
+wronghash1  test1.txt
+# Middle comment
+  wronghash2  test2.txt # inline comment
+# Footer comment
+EOF
+
+OUTPUT=$( "${DEVKIT_CHECK_CHECKSUMS}" --update 2>&1 | strip_colors )
+EXPECTED="Updating checksum for test1.txt ... UPDATED
+Updating checksum for test2.txt ... UPDATED
+Successfully updated 2 checksum(s)."
+
+if [[ "${OUTPUT}" != "${EXPECTED}" ]]; then
+  echo "Test Case 7 Failed: Expected output: ${EXPECTED}"
+  echo "Actual output: ${OUTPUT}"
+  exit 1
+fi
+
+# Verify that checksums.txt content is correct and comments are preserved
+EXPECTED_CONTENT="# Header comment
+${CHECKSUM1}  test1.txt
+# Middle comment
+  ${CHECKSUM2}  test2.txt # inline comment
+# Footer comment"
+
+ACTUAL_CONTENT=$(cat checksums.txt)
+if [[ "${ACTUAL_CONTENT}" != "${EXPECTED_CONTENT}" ]]; then
+  echo "Test Case 7 Failed: checksums.txt content mismatch"
+  echo "Expected:"
+  echo "${EXPECTED_CONTENT}"
+  echo "Actual:"
+  echo "${ACTUAL_CONTENT}"
+  exit 1
+fi
+
+# Test case 8: Update when already up-to-date
+OUTPUT=$( "${DEVKIT_CHECK_CHECKSUMS}" --update 2>&1 | strip_colors )
+EXPECTED="Updating checksum for test1.txt ... UNCHANGED
+Updating checksum for test2.txt ... UNCHANGED
+All checksums are already up-to-date."
+
+if [[ "${OUTPUT}" != "${EXPECTED}" ]]; then
+  echo "Test Case 8 Failed: Expected output: ${EXPECTED}"
+  echo "Actual output: ${OUTPUT}"
+  exit 1
+fi
+
+# Test case 9: Update fails when file is missing
+rm "test2.txt"
+PRE_UPDATE_CONTENT=$(cat checksums.txt)
+
+OUTPUT=$( "${DEVKIT_CHECK_CHECKSUMS}" --update 2>&1 | strip_colors || true )
+EXPECTED="Updating checksum for test1.txt ... UNCHANGED
+Error: file not found: test2.txt
+Failed to update some checksums due to errors."
+
+if [[ "${OUTPUT}" != "${EXPECTED}" ]]; then
+  echo "Test Case 9 Failed: Expected output:
+${EXPECTED}"
+  echo "Actual output:
+${OUTPUT}"
+  exit 1
+fi
+
+POST_UPDATE_CONTENT=$(cat checksums.txt)
+if [[ "${POST_UPDATE_CONTENT}" != "${PRE_UPDATE_CONTENT}" ]]; then
+  echo "Test Case 9 Failed: checksums.txt was modified despite errors"
+  exit 1
+fi
+
+# Test case 10: checksums.txt with only comments in update mode
+echo "# Only comments" > "checksums.txt"
+OUTPUT=$( "${DEVKIT_CHECK_CHECKSUMS}" --update 2>&1 | strip_colors )
+EXPECTED="No files to update. The checksums.txt is empty or only contains whitespace."
+if [[ "${OUTPUT}" != "${EXPECTED}" ]]; then
+  echo "Test Case 10 Failed: Expected output: ${EXPECTED}"
+  echo "Actual output: ${OUTPUT}"
+  exit 1
+fi
+
 echo "All devkit/check_checksums tests passed."

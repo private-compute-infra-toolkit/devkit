@@ -17,7 +17,7 @@ ARG BASE
 # hadolint ignore=DL3006
 FROM ${BASE}
 
-ARG CODE_VERSION=1.124.2-*
+ARG CODE_VERSION=1.125.1-*
 
 SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
 

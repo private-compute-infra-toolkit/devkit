@@ -178,6 +178,10 @@ def main() -> None:
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         logging.info("Git discovery failed or not in a git repo: %s", e)
 
+    for key in os.environ:
+        if key.startswith("CLOUDSDK_CONTEXT_"):
+            additional_env.append(f"--env={key}")
+
     docker_group = "docker"
     try:
         docker_group_id = grp.getgrnam(docker_group).gr_gid
@@ -269,6 +273,7 @@ def main() -> None:
         "--env=AWS_SESSION_TOKEN",
         "--env=AWS_PAGER",
         "--env=GH_TOKEN",
+        "--env=CLOUDSDK_CONTAINER_USE_APPLICATION_DEFAULT_CREDENTIALS",
         f"--env=USER={user_name}",
         f"--env=USER_ID={user_id}",
         f"--env=GROUP={group_name}",
