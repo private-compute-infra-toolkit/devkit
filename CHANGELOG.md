@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 3.11.0 (2026-08-06)
+
+
+### Dependencies
+
+* **deps:** Update apt packages (diff hash: c8575306)
+* **deps:** Update apt packages (diff hash: d9219547)
+* **deps:** Update apt packages (diff hash: daa447e3)
+* **deps:** Update apt packages (diff hash: f013e614)
+* **deps:** Upgrade gemini-cli to 0.49.0
+* **deps:** Upgrade gemini-cli to 0.51.0
+* **deps:** Upgrade gemini-cli to 0.52.0
+* **deps:** Upgrade gemini-cli to 0.53.1
+
+
+### Bug Fixes
+
+* **coverage:** check cwd bazel-out for report
+
 ## 3.10.0 (2026-07-01)
 
 

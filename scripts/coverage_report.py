@@ -344,6 +344,11 @@ def run_bazel_coverage(target: str) -> pathlib.Path:
             capture_output=False,
             encoding="utf-8",
         )
+        cwd_report = (
+            pathlib.Path.cwd() / "bazel-out" / "_coverage" / "_coverage_report.dat"
+        )
+        if cwd_report.exists():
+            return cwd_report
         return (
             pathlib.Path(project_root)
             / "bazel-out"

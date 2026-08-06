@@ -335,6 +335,43 @@ class TestMainExecution(unittest.TestCase):
             Path("/fake/project/root/bazel-out/_coverage/_coverage_report.dat"), result
         )
 
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.cwd")
+    @patch("coverage_report.find_project_root")
+    @patch("subprocess.run")
+    def test_run_bazel_coverage_cwd_exists(
+        self,
+        mock_subprocess_run: MagicMock,
+        mock_find_project_root: MagicMock,
+        mock_cwd: MagicMock,
+        mock_exists: MagicMock,
+    ) -> None:
+        """Tests if run_bazel_coverage returns cwd path when report exists there."""
+        mock_find_project_root.return_value = Path("/fake/project/root")
+        mock_cwd.return_value = Path("/fake/project/root/subdir")
+        mock_exists.return_value = True
+        result = run_bazel_coverage("//...")
+        mock_subprocess_run.assert_called_once_with(
+            [
+                "/fake/project/root/devkit/build",
+                "bazel",
+                "coverage",
+                "--combined_report=lcov",
+                "//...",
+            ],
+            check=True,
+            text=True,
+            capture_output=False,
+            encoding="utf-8",
+        )
+        expected = (
+            Path("/fake/project/root/subdir")
+            / "bazel-out"
+            / "_coverage"
+            / "_coverage_report.dat"
+        )
+        self.assertEqual(expected, result)
+
     @patch("sys.exit")
     @patch("subprocess.run")
     def test_run_bazel_coverage_failure(

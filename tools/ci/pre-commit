@@ -20,8 +20,10 @@ export TZ=Etc/UTC
 export PS4='+\t $(basename ${BASH_SOURCE[0]}):${LINENO} ' # xtrace prompt
 
 function collect_logs() {
-  if [[ -v KOKORO_ARTIFACTS_DIR ]]; then
-    cp -r "${HOME}/.devkit/logs" "${KOKORO_ARTIFACTS_DIR}"
+  local -r log_dir="${HOME}/.devkit/logs"
+  if [[ -v KOKORO_ARTIFACTS_DIR ]] && [[ -d "${log_dir}" ]]; then
+    mkdir -p "${KOKORO_ARTIFACTS_DIR}/logs/devkit_logs"
+    cp -rT "${log_dir}" "${KOKORO_ARTIFACTS_DIR}/logs/devkit_logs"
   fi
 }
 trap collect_logs EXIT

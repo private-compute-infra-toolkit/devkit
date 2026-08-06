@@ -18,8 +18,10 @@ set -o nounset
 set -o xtrace
 
 function kokoro::logs() {
-  if [[ -v KOKORO_ARTIFACTS_DIR ]]; then
-    cp -r "${HOME}/.devkit/logs" "${KOKORO_ARTIFACTS_DIR}"
+  local -r log_dir="${HOME}/.devkit/logs"
+  if [[ -v KOKORO_ARTIFACTS_DIR ]] && [[ -d "${log_dir}" ]]; then
+    mkdir -p "${KOKORO_ARTIFACTS_DIR}/logs/devkit_logs"
+    cp -rT "${log_dir}" "${KOKORO_ARTIFACTS_DIR}/logs/devkit_logs"
   fi
 }
 trap kokoro::logs EXIT
