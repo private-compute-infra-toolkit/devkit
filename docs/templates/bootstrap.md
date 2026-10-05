@@ -1,5 +1,7 @@
 # bootstrap
 
+<!-- [START bootstrap_overview] -->
+
 The `bootstrap` script is used to create new projects from a set of predefined
 templates. It's the perfect starting point for a new service, library, or other
 component, as it ensures that all the necessary boilerplate and configuration
@@ -13,14 +15,24 @@ The entire process runs within the `tool-env` container, guaranteeing a
 consistent and reliable bootstrapping experience regardless of your local
 machine's setup.
 
+<!-- [END bootstrap_overview] -->
+
 ## Usage
+
+<!-- [START bootstrap_usage] -->
 
 ```
 {% include 'help/bootstrap.txt' %}
 ```
 
+<!-- [END bootstrap_usage] -->
+
 ## Example
+
+<!-- [START bootstrap_example] -->
 
 ```sh
 devkit/bootstrap --template cpp --args toolchain=llvm_bootstrapped
 ```
+
+<!-- [END bootstrap_example] -->

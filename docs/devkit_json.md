@@ -1,10 +1,16 @@
 # devkit.json Configuration
 
+<!-- [START devkit_json_overview] -->
+
 The `devkit.json` file is the central configuration file for the DevKit. It
 allows you to customize various aspects of the toolkit, primarily focusing on
 Docker image management and dependency versions.
 
+<!-- [END devkit_json_overview] -->
+
 ## Configuration Parameters
+
+<!-- [START devkit_json_configuration_parameters] -->
 
 | Path                                      | Type   | Description                                                                                                                                    |
 | :---------------------------------------- | :----- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -21,7 +27,11 @@ Docker image management and dependency versions.
 | `docker.images.<image_name>.repositories` | Map    | A map of package repositories to add. Keys are identifiers, values are repository URLs. Passed as `EXTRA_REPOSITORIES` build arg.              |
 | `docker.images.<image_name>.packages`     | Map    | A map of extra packages to install. Keys are package names, values are version strings (e.g., `1.11.*`). Passed as `EXTRA_PACKAGES` build arg. |
 
+<!-- [END devkit_json_configuration_parameters] -->
+
 ## Example
+
+<!-- [START devkit_json_example] -->
 
 ```json
 {
@@ -48,3 +58,5 @@ Docker image management and dependency versions.
     }
 }
 ```
+
+<!-- [END devkit_json_example] -->

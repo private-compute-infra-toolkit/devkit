@@ -1,5 +1,7 @@
 # vendor
 
+<!-- [START vendor_overview] -->
+
 The `vendor` tool facilitates offline builds by allowing you to "vendor"
 (export) Docker images into a portable format and then load them back into the
 Docker environment.
@@ -13,13 +15,21 @@ tools can function without needing to pull from a remote registry.
 The tool leverages the `docker save` and `docker load` commands under the hood,
 streamlining the process of managing these dependencies for offline usage.
 
+<!-- [END vendor_overview] -->
+
 ## Usage
+
+<!-- [START vendor_usage] -->
 
 ```
 {% include 'help/vendor.txt' %}
 ```
 
+<!-- [END vendor_usage] -->
+
 ## Example
+
+<!-- [START vendor_example] -->
 
 Vendor specific images
 
@@ -32,3 +42,5 @@ Load images from a directory
 ```sh
 devkit/vendor --dir /tmp/images --load
 ```
+
+<!-- [END vendor_example] -->

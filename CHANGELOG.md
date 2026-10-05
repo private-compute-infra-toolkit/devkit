@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 3.12.0 (2026-10-05)
+
+
+### Dependencies
+
+* **deps:** Update apt packages (diff hash: 59924e62)
+* **deps:** Update apt packages (diff hash: cb71241e)
+* **deps:** Upgrade gemini-cli to 0.54.4
+* **deps:** Upgrade gemini-cli to 0.56.0
+* **deps:** Upgrade gemini-cli to 0.58.0
+
+
+### Documentation
+
+* add region tags to DevKit doc templates
+
 ## 3.11.0 (2026-08-06)
 
 

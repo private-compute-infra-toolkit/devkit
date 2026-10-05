@@ -1,5 +1,7 @@
 # build
 
+<!-- [START build_overview] -->
+
 The `build` script is your main gateway into the DevKit build environment. Its
 primary purpose is to provide a consistent environment for all build and
 test-related tasks. By running builds inside a container, you eliminate the
@@ -19,14 +21,24 @@ You can use the script in two main ways:
    `build`, it will drop you into an interactive `bash` shell inside the
    container, allowing you to explore the environment and run commands manually.
 
+<!-- [END build_overview] -->
+
 ## Usage
+
+<!-- [START build_usage] -->
 
 ```
 {% include 'help/build.txt' %}
 ```
 
+<!-- [END build_usage] -->
+
 ## Example
+
+<!-- [START build_example] -->
 
 ```sh
 devkit/build bazel build //...
 ```
+
+<!-- [END build_example] -->

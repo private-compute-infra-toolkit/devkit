@@ -1,5 +1,7 @@
 # vscode_ide
 
+<!-- [START vscode_ide_overview] -->
+
 The `vscode_ide` script launches a fully containerized Visual Studio Code
 development environment. This provides a consistent and reproducible IDE setup,
 complete with all necessary tools and extensions, regardless of your local
@@ -19,14 +21,24 @@ It supports two modes of operation:
     container, which you can access from your local web browser. This is perfect
     for remote development or running the IDE on a headless machine.
 
+<!-- [END vscode_ide_overview] -->
+
 ## Usage
+
+<!-- [START vscode_ide_usage] -->
 
 ```
 {% include 'help/vscode_ide.txt' %}
 ```
 
+<!-- [END vscode_ide_usage] -->
+
 ## Example
+
+<!-- [START vscode_ide_example] -->
 
 ```sh
 devkit/vscode_ide --server
 ```
+
+<!-- [END vscode_ide_example] -->

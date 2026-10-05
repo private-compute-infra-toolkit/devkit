@@ -1,5 +1,7 @@
 # bep
 
+<!-- [START bep_overview] -->
+
 The `bep` tool is a powerful utility for analyzing Bazel builds. It generates
 detailed reports in the Build Event Protocol (BEP) format, which provides a
 structured stream of events about a build's execution. This data is invaluable
@@ -14,14 +16,24 @@ analysis and visualization tools.
 If no specific targets are provided, the tool will analyze all targets within
 the workspace (`//...`).
 
+<!-- [END bep_overview] -->
+
 ## Usage
+
+<!-- [START bep_usage] -->
 
 ```
 {% include 'help/bep.txt' %}
 ```
 
+<!-- [END bep_usage] -->
+
 ## Example
+
+<!-- [START bep_example] -->
 
 ```sh
 devkit/bep --target BUILD --command fetch --output_dir bep_report/
 ```
+
+<!-- [END bep_example] -->

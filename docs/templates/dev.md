@@ -1,5 +1,7 @@
 # dev
 
+<!-- [START dev_overview] -->
+
 The `dev` script is your entry point into the DevKit development environment.
 
 This environment is separate from the `build` environment. While the `build`
@@ -14,14 +16,24 @@ Similar to the `build` script, you can execute a command directly (e.g.,
 `dev gemini`) or launch an interactive `bash` session to work inside the
 container.
 
+<!-- [END dev_overview] -->
+
 ## Usage
+
+<!-- [START dev_usage] -->
 
 ```
 {% include 'help/dev.txt' %}
 ```
 
+<!-- [END dev_usage] -->
+
 ## Example
+
+<!-- [START dev_example] -->
 
 ```sh
 devkit/dev gemini
 ```
+
+<!-- [END dev_example] -->
